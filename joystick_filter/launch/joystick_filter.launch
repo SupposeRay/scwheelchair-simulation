@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- Joystick filter: maps from raw user input to cmd_vel -->
+   <node pkg="joystick_filter" type="joystick_filter" name="joystick_filter" output="screen">
+    <rosparam command="load" file="$(find joystick_filter)/config/settings.yaml" />
+    <param name="use_medianfilter" value="false" />
+    <param name="use_kalmanfilter" value="true" />
+    <param name="adaptive_kalman" value="true" />
+  </node>
+
+</launch>

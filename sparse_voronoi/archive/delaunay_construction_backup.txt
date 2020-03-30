@@ -1,0 +1,32 @@
+    // // Build graph by connecting adjacent triangles / nodes
+    // // ROS_DEBUG_STREAM("Building graph");
+    // for (size_t t = 0; t < N_triangles; t++)
+    // {
+    //   size_t edges[3] = {3 * t, 3 * t + 1, 3 * t + 2};
+    //   for (size_t e : edges)
+    //   {
+        // size_t e_opp = delaunator.halfedges[e];
+    //     if (e_opp < N_edges) // if opposite edge index (much) larger than number of edges, there is no opposite triangle
+    //     {
+    //       size_t t_opp = floor(e_opp / 3);
+    //       // find shared_vertices
+    //       size_t ind_vert1[2] = {2 * delaunator.triangles[e], 2 * delaunator.triangles[e] + 1};
+    //       size_t ind_vert2[2] = {2 * delaunator.triangles[e_opp], 2 * delaunator.triangles[e_opp] + 1};
+    //       double vertex_1[2] = {delaunator.coords[ind_vert1[0]], delaunator.coords[ind_vert1[1]]};
+    //       double vertex_2[2] = {delaunator.coords[ind_vert2[0]], delaunator.coords[ind_vert2[1]]};
+    //       double gap = base_utils::euclideanDistance(vertex_1,vertex_2);
+    //       // ROS_DEBUG_STREAM("gap size: " << gap);
+    //       if (gap > min_gap_)        
+    //         addAction(t, time, t_opp, time);
+    //         // Adds voronoi connection from node t to its neighbor t_opp
+    //     }
+
+        // size_t v = delaunator.triangles[e];
+        // if (v == v_agent_)
+        // {
+        //   addAction(t, time, t_agent_, time);
+          // Adds voronoi connection to agent if one of the vertices of the triangle is the agent.
+  //       }
+  //     }
+  //   }
+  // }

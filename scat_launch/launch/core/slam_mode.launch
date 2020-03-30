@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!-- Launches the robot in minimum shared control version, with joystick filtering and collision avoidance only.  -->
+
+<launch>
+  <arg name="sim" default="false"/>   <!--determines whether to launch hardware drivers or not -->
+  <arg name="joy_topic" default="user"/>   <!--selects joy_topic: e.g. "user" or "remote" results in /user/joy or /remote/joy-->
+  <arg name="debug" default="true"/>   <!--prints debugging info if true -->
+
+  <arg name="bot_params" default="scatwheel_params" />  
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="odom_frame" default="odom"/>  
+  <arg name="fixed_frame" default="map"/>
+
+    <!-- Launch hardware drivers, alternatively, use the 'bare' simulation launch files  in mbot_navigation or scatwheel_navigation -->
+    <include unless="$(arg sim)" file="$(find scat_launch)/launch/hardware_drivers.launch">
+	  <arg name="base_frame" default="$(arg base_frame)"/>  
+    </include>
+
+    <!-- Launch Localization pipeline -->
+    <include file="$(find scat_launch)/launch/localization.launch">
+	  <arg name="global" value="false" />
+	  <arg name="base_frame" value="$(arg base_frame)"/>  
+	  <arg name="fixed_frame" value="$(arg odom_frame)"/>  
+    </include>
+    
+    <!-- Velocity command safety filter, filtering all commands for collision and vel/acc limits -->
+  <node pkg="vel_safety_filter" type="vel_safety_filter" name="vel_safety_filter" output="screen">
+    <rosparam command="load" file="$(find vel_safety_filter)/config/settings.yaml" />    
+    <rosparam command="load" file="$(find scat_launch)/config/$(arg bot_params).yaml" />
+    <remap from="/odom" to="/ekf/odom" />
+    <remap from="/obstacles" to="/scan_obstacles" />
+    <param name="collision_method" value="footprint"/>
+    <param name="base_frame" value="$(arg base_frame)"/>  
+    <param name="fixed_frame" value="$(arg odom_frame)"/> 
+    <param name="obst_type" value="scan"/>
+    <param name="use_vel_filter" value="true"/>
+    <param name="use_acc_filter" value="true"/>
+    <param name="use_col_filter" value="true"/>
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+
+    <!-- Joystick filter: maps from raw user input to cmd_vel -->
+  <node pkg="joystick_filter" type="joystick_filter" name="joystick_filter" output="screen">
+    <rosparam command="load" file="$(find joystick_filter)/config/settings.yaml" />
+    <remap from="/user/cmd_vel" to="/control/cmd_vel" />
+    <remap from="/user/joy" to ="/$(arg joy_topic)/joy" />
+    <param name="use_medianfilter" value="false"/>
+    <param name="use_kalmanfilter" value="false" />
+    <param name="adaptive_kalman" value="false" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" clear_params="true">
+    	<rosparam file="$(find scat_launch)/config/gmapping.yaml" command="load" />
+        <param name="base_frame" value="$(arg base_frame)"/>        
+        <param name="odom_frame" value="$(arg odom_frame)"/>        
+        <param name="map_frame" value="$(arg fixed_frame)"/>
+    </node>
+
+
+</launch>

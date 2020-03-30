@@ -1,0 +1,43 @@
+### Shared MPC settings
+node_active: true
+debug: false
+fixed_frame_id: "map"
+base_frame_id: "base_footprint"
+use_corner_constraints: true
+use_voronoi: false
+use_adaptive: false
+pos_method: "global"
+
+## Collision parameters
+obst_dist_threshold: 0.5
+calc_frequency: 6.0
+obst_frequency: 10.0
+obst_range: 10.0 # obstacles outside of this range are not used in calculation
+
+## MPC parameters
+prediction_horizon: 8   # [samples]
+sampling_time: 0.4       # dt [s]
+### horizon distance = prediction_horizon * sampling_time * v   e.g. = 2 m
+
+## Cost function parameters. 
+## These constants are loaded if use_adaptive is false
+Kv: 0.25 # linear velocity
+Kh: 0.65 # heading (direction)
+Kw: 0.0 # angular velocity
+## Additional parameters
+Ks: 0.1 # smoothness
+Keq: 10 # equality constraints (system model)
+Kineq: 10 # inequality constraints (obstacles)
+
+# additional constants for adaptive shared control. If use_adaptive = true
+# these are used as follows: Kv = Kv0 + Kvr * (1 - var_x) 
+# where var_x is the variance in x direction published by joystick_filter
+# base constants
+Kv0: 0.2
+Kw0: 0.0
+Kh0: 0.6
+# range constants
+Kvr: 0.2
+Kwr: 0.0
+Khr: 0.2
+

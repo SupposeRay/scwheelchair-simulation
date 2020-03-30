@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="laser_pkg" default="laser_line" />  
+
+    <!-- Launch Line detector type 1 -->
+    <include if="$(eval laser_pkg == 'laser_line')" file="$(find laserline)/launch/laserline.launch"/>
+
+    <!-- Launch Line detector type 2 -->
+    <include if="$(eval laser_pkg == 'line_extractor')" file="$(find laser_line_extraction)/launch/line_extractor.launch"/>-->
+
+    <!-- Launch Obstacle Detector -->
+    <include if="$(eval laser_pkg == 'obstacle_detector')" file="$(find obstacle_detector)/launch/nodes.launch"/>
+</launch>

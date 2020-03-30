@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<!-- Can be used for ROS navigation stack based Shared Control -->
+
+<launch>
+  <arg name="sim" default="false"/>   <!--determines whether to launch hardware drivers or not -->
+  <arg name="sc_type" default="dwa"/>   <!--"dwa", "mpc", "traj" or "goal-->
+  <arg name="global" default="false"/>   <!-- whether to use global localization and move_base (required when using sc_type = traj/goal) -->
+  <arg name="joy_topic" default="user"/>   <!--selects joy_topic: e.g. "user" or "remote" results in /user/joy or /remote/joy-->
+  <arg name="map" default="rris.yaml" />
+  <arg name="debug" default="true"/>   <!--prints debugging info if true -->
+
+  <arg name="adaptive" default="false"/>
+  <arg name="voronoi" default="false"/>
+  <arg name="prediction_horizon" default="6"/>
+  <arg name="sampling_time" default="0.4"/>
+
+  <arg name="bot_params" default="scatwheel_params" />  
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="fixed_frame" default="map"/>
+
+    <!-- Launch hardware drivers, alternatively, use the 'bare' simulation launch files  in mbot_navigation or scatwheel_navigation -->
+    <include unless="$(arg sim)" file="$(find scat_launch)/launch/hardware_drivers.launch">
+	  <arg name="base_frame" default="$(arg base_frame)"/>  
+    </include>
+
+    <!-- Launch Localization pipeline -->
+    <include file="$(find scat_launch)/launch/localization.launch">
+	  <arg name="map" value="$(arg map)" />
+	  <arg name="base_frame" value="$(arg base_frame)"/>  
+	  <arg name="fixed_frame" value="$(arg fixed_frame)"/>  
+	  <arg name="global" value="$(arg global)"/>  
+    </include>
+
+    <!-- Launch shared control module -->
+    <include file="$(find scat_launch)/launch/shared_control.launch">
+	  <arg name="sc_active" value="true" />
+	  <arg name="sc_type" value="$(arg sc_type)" />
+	  <arg name="global" value="$(arg global)" />
+	  <arg name="bot_params" default="$(arg bot_params)"/>  
+	  <arg name="base_frame" default="$(arg base_frame)"/>  
+	  <arg if="$(arg global)" name="fixed_frame" default="$(arg fixed_frame)"/>  
+	  <arg unless="$(arg global)" name="fixed_frame" default="$(arg odom_frame)"/>  
+	  <arg name="adaptive" value="$(arg adaptive)"/>  
+	  <arg name="voronoi" value="$(arg voronoi)"/>  
+	  <arg name="prediction_horizon" value="$(arg prediction_horizon)"/>  
+	  <arg name="sampling_time" value="$(arg sampling_time)"/>
+          <arg name="sim" value="$(arg sim)"/>  
+          <arg name="debug" value="$(arg debug)"/>
+          <arg name="obst_type" default="obstmsg"/> 
+    </include>
+
+    <!-- Velocity command safety filter, filtering all commands for collision and vel/acc limits -->    
+  <node pkg="vel_safety_filter" type="vel_safety_filter" name="vel_safety_filter" output="screen">
+    <rosparam command="load" file="$(find vel_safety_filter)/config/settings.yaml" />    
+    <rosparam command="load" file="$(find scat_launch)/config/$(arg bot_params).yaml" />
+    <remap from="/odom" to="/ekf/odom" />
+    <remap from="/obstacles" to="/scan_obstacles" />
+    <param name="collision_method" value="footprint"/>
+    <param name="base_frame" value="$(arg base_frame)"/>  
+    <param name="fixed_frame" value="$(arg fixed_frame)"/> 
+    <param name="obst_type" value="scan"/>
+    <param name="use_vel_filter" value="true"/>
+    <param name="use_acc_filter" value="true"/>
+    <param name="use_col_filter" value="true"/>
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+
+    <!-- Joystick filter: maps from raw user input to cmd_vel -->
+   <node pkg="joystick_filter" type="joystick_filter" name="joystick_filter" output="screen">
+    <rosparam command="load" file="$(find joystick_filter)/config/settings.yaml" />
+    <remap from="/user/joy" to ="/$(arg joy_topic)/joy" />
+    <param name="use_medianfilter" value="false" />
+    <param name="use_kalmanfilter" value="true" />
+    <param name="adaptive_kalman" value="false" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+
+    <!-- move_base node, launched when arg global = true -->
+  <node if="$(arg global)" pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+    <remap from="/odom" to="/ekf/odom"/>
+    <remap from="/cmd_vel" to="/control/cmd_vel"/>
+    <param name="base_global_planner" value="global_planner_plugin/GlobalPlannerPlugin" />    
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />
+    <rosparam file="$(find scat_launch)/config/move_base_params.yaml" command="load" />
+    <rosparam file="$(find scat_launch)/config/local_planner_params.yaml" command="load" />
+    <rosparam file="$(find scat_launch)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find scat_launch)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find scat_launch)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find scat_launch)/config/global_costmap_params.yaml" command="load" />
+    <param name="planner_frequency" value="0.5" />
+  </node>
+
+</launch>

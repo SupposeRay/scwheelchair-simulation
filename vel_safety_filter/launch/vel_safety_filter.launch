@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="vel_safety_filter" type="vel_safety_filter" name="vel_safety_filter" output="screen">
+    <rosparam command="load" file="$(find vel_safety_filter)/config/settings.yaml" />    
+    <rosparam command="load" file="$(find scat_launch)/config/scatwheel_params.yaml" />
+    <!-- <remap from="/control/cmd_vel" to="/user/cmd_vel" /> -->
+  </node>
+
+</launch>

@@ -1,0 +1,16 @@
+# Data collection tools
+
+The rosbag tool can be used to do data collection.
+
+- Start recording topics into a rosbag file:
+
+    - $ rosbag record -a 
+    - $ rosbag record /topic
+
+- Rename the bag file to data.bag
+
+- Convert data to text files easily importable in Python (modify to select the topics you want to extract):
+
+    - $ rostopic echo -b data.bag -p /imu > imu.txt 
+
+- Run the python file extract_data.py (modify to select the topics you want to extract)

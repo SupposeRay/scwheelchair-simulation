@@ -1,0 +1,39 @@
+## Methods
+tri_method: "delaunay" # can be "constrained" or "delaunay"
+mdp_method: "valueiteration" # can be "valueiteration" or "qlearning"
+use_dynamic_voronoi: false
+use_dynamic_reward: false
+use_dynamic_constraint: false
+
+## Path construction parameters
+max_nr_states: 6 
+max_path_angle: 1.6 # generally ~pi/2
+
+## Visualization parameters
+pub_markers: true 
+pub_voropath: true
+
+## Voronoi algorithm parameters
+obst_range: 10
+min_gap: 0.7
+cmd_buffer: 5
+
+# dynamic parameters, only used when use_dynamic_voronoi is true:
+voronoi_horizon: 5 # number of voronoi diagrams the algorithm will build
+voronoi_dt: 0.3 # time between voronoi diagrams
+
+## MDP value iteration parameters
+max_it: 10 # Voronoi path Value iteration max nr of iterations
+min_it: 3 # Minimum number of iterations
+it_err_thresh: 0.01 # error threshold to stop MDP
+gamma: 0.8 # 
+alpha: 0.8 # learning rate mdp
+cost_angle: 0.5 # if larger than 0, adds an extra cost (neg reward) for angles different from current angle wheelchair.
+cost_angle2: 0.5 # if using Qlearning, and cost larger than 0, adds an extra cost (neg reward) for abrupt angles in the voronoi diagram
+
+
+
+
+
+
+

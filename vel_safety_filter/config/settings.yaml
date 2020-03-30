@@ -1,0 +1,36 @@
+### Vel safety filter settings
+debug: false
+fixed_frame_id: "map"
+base_frame_id: "base_footprint"
+mode: "shared" # determines source of cmd_vel
+
+collision_method: "footprint" 
+# Method used to check for collision. "footprint" or 
+# "radius" just checks the distance to obstacles and reports collision if the distance is smaller than obst_inflation. radius only works with when obst_type = "scan"
+# "footprint" checks whether the provided footprint is in collision with known obstacles, using obst_inflation, footprint_inflation and vel_inflation. footprint is more accurate. 
+
+obst_type: "scan" 
+# Determines the source of obstacle data for obstacle avoidance. 
+# options: "scan", "cloud" or "obstmsg" 
+# "scan" using laserscan message. Is generally the fastest. 
+# "cloud" uses a 3d pointcloud, e.g. coming from rgbd image. 
+# "obstmsg" uses the obstacle message description scat_msgs::EnvObjectList.
+
+vel_type: odom # odom or twist
+
+use_vel_filter: true
+use_col_filter: true
+use_acc_filter: true
+
+## Collision parameters
+footprint_inflation: 0.2 # footprint multiplication factor. 0.2 = 20% inflation
+vel_inflation: 0.2 # additional inflation factor dependent on velocity. Increase if getting stuck alongside the wall. Full inflation (e.g. 20% for factor 0.2) is added when v = v_max.
+
+obstacle_inflation: 0.2 # [m]
+angle_res: 0.2 # [rad]
+obst_range: 10.0 # [m]
+
+## Node parameters
+sampling_time: 0.1 # used to decelerate if collision is detected.
+time_out: 0.5 # after this time [s] the cmd_vel is automatically reset to 0, to avoid continuing after control signals are lost. 
+

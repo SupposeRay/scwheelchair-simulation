@@ -1,0 +1,45 @@
+## Sparse Voronoi parameters
+node_active: true
+debug: true
+fixed_frame_id: "odom"
+base_frame_id: "base_footprint"
+interface_movebase: false # can be used to directly publish the predicted voronoi path to move base as target trajectory. very experimental. NOTE: pub_voropath must also be set to true to enable this feature.
+pub_frequency: 5 # pub frequency mdp
+calc_frequency: 5 # calc frequency voronoi
+
+## Methods
+tri_method: "constrained" # can be "constrained" or "delaunay". "constrained" is recommended. 
+mdp_method: "valueiteration" # can be "valueiteration" or "qlearning". "qlearning" is recommended.
+use_dynamic_voronoi: false
+use_dynamic_constraint: false
+use_dynamic_reward: false # if set to true, global positioning is required, which can be provided to the subscriber at /amcl_pose.
+use_targets: false
+
+## Path construction parameters
+prediction_horizon: 6
+sampling_time: 0.4
+max_nr_states: 6
+max_path_angle: 1.6 # approx ~pi/2
+
+## Visualization parameters
+pub_markers: true
+
+## Voronoi algorithm parameters
+obst_range: 10
+min_gap: 0.7
+cmd_buffer: 5
+
+## dynamic parameters, only used when use_dynamic_voronoi is true:
+voronoi_horizon: 5 # number of voronoi diagrams the algorithm will build
+voronoi_dt: 0.3 # time between voronoi diagrams
+
+## MDP hyper parameters
+max_it: 10 # Voronoi path Value iteration max nr of iterations
+min_it: 3 # Minimum number of iterations
+it_err_thresh: 0.01 # error threshold to stop MDP
+gamma: 0.8 # 
+alpha: 0.8 # learning rate mdp
+cost_angle: 0.5 # if cost_angle larger than 0.01, adds an extra cost (neg reward) for angles different from current angle wheelchair. Is divided by the distance [m], therefore to have significant influence relative to the other scaled costs (0-1), set cost_angle to ~3 
+cost_angle2: 0.5 # if using Qlearning, and cost larger than 0.01, adds an extra cost (neg reward) for abrupt angles in the voronoi diagram. Recommended value: between 0 and 1
+
+

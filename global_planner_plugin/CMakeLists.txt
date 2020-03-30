@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(global_planner_plugin)
+
+set(${PROJECT_NAME}_ROS_DEPS 
+  roscpp 
+  costmap_2d 
+  pluginlib 
+  nav_core
+)
+
+find_package(catkin REQUIRED COMPONENTS 
+${${PROJECT_NAME}_ROS_DEPS}
+)
+
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS ${${PROJECT_NAME}_ROS_DEPS}
+)
+
+add_library(${PROJECT_NAME} src/${PROJECT_NAME}.cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
+
+install(FILES bgp_plugin.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

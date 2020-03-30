@@ -1,0 +1,4 @@
+v: 0.2
+w: 0.31416
+duration: 50.0 # seconds
+publish_frequency: 10.0

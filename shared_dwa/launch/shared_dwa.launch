@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="shared_dwa" type="shared_dwa" name="shared_dwa" output="screen">	
+	<rosparam command="load" file="$(find shared_dwa)/config/settings.yaml" />    
+	<rosparam command="load" file="$(find scat_launch)/config/scatwheel_params.yaml" />
+    <remap from="/odom" to="/encoders/odom"/>
+    <remap from="/control/cmd_vel" to="/cmd_vel"/>
+  </node>
+
+</launch>

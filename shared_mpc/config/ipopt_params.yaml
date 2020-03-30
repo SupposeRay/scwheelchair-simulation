@@ -1,0 +1,18 @@
+print_level: 1
+max_cpu_time: 0.1
+#max_iter: 20
+# convergence criteria
+#tol: 0.00001
+#compl_inf_tol: 0.0001
+#dual_inf_tol: 0.0001
+#constr_viol_tol: 0.000001
+# initialization parameters
+#bound_frac: 0.01
+#bound_push: 0.01
+#slack_bound_frac: 0.01
+#slack_bound_push: 0.01
+#bound_relax_factor: 0.0001
+# other options
+#mu_strategy: monotone # adaptive/monotone
+#hessian_approximation: exact #exact/limited-memory
+#linear_solver: ma27 #ma27 is fastest, then ma57. 

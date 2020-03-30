@@ -1,0 +1,17 @@
+obstacle_range: 8.0 # how close an obstacle has to be detected to be put in the map
+raytrace_range: 8.0 # how far out the robot will attempt to clear out space. 
+footprint: [[0.3, 0.25], [0.3, -0.25], [-0.6, -0.25], [-0.6, 0.25]]
+footprint_inflation: 0.2
+#robot_radius: 0.5
+inflation_radius: 0.5
+max_obstacle_height: 2.0
+min_obstacle_height: 0.0
+observation_sources: scan
+scan: {data_type: LaserScan, topic: /scan, marking: true, clearing: true, expected_update_rate: 0}
+
+# The following params are only used for the voxel layer (Voxel Costmap Plugin)
+# origin z: 		# The z origin of the map in meters.
+# z_resolution: # The z resolution of the map in meters/cell.
+# z_voxels: # The number of voxels to in each vertical column, the height of the grid is z resolution * z voxels.
+# unknown_threshold: # The number of unknown cells allowed in a column considered to be ”known”
+# mark_threshold: # The maximum number of marked cells allowed in a column considered to be ”free”.

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="test_obstacle_publisher" type="test_obstacle_publisher" name="test_obstacle_publisher" output="screen">
+    <rosparam command="load" file="$(find test_obstacle_publisher)/config/settings.yaml" />
+  </node>
+
+</launch>

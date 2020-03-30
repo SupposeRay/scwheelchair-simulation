@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>scat_launch</name>
+  <version>0.0.0</version>
+  <description>The scat_launch package</description>
+  <maintainer email="scatwheel@todo.todo">scatwheel</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

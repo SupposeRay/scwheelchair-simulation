@@ -1,0 +1,143 @@
+// Limits the velocity according to the parameter set by setParameters
+// Returns the limited velocity in the reference
+geometry_msgs::Twist VelUtils::limitVelocity(geometry_msgs::Twist cmd_vel)
+{
+  float v = cmd_vel.linear.x;
+  float w = cmd_vel.angular.z;
+  // maximum accelerations and decelerations which can be achieved in one time sample
+  float dv_a = v_acc_*sampling_time_; 
+  float dv_d = v_dec_*sampling_time_;
+  float dw_a = w_acc_*sampling_time_;
+  float dw_d = w_dec_*sampling_time_;
+  // Limit velocity command to within velocity & acceleration limits
+  // Case 1: pure rotation
+  if (fabs(v) < v_threshold_)
+  {
+    cmd_vel.linear.x = 0;
+    // Limitations to angular velocity
+    if (w_threshold_ <= fabs(w) && fabs(w) < w_min_) // rotational velocity smaller than min value, scale up
+      cmd_vel.angular.z = base_utils::sign(w) * w_min_;
+    else if (w_min_ <= fabs(w) && fabs(w) <= w_max_)  // 'normal' case, limit acceleration
+    {
+      cmd_vel.angular.z = w;
+      // float w_ref = base_utils::sign(w_agent_) * std::max(std::min(std::fabs(w_agent_), w_max_ - dw_a), w_min_ + dw_d);
+      // cmd_vel.angular.z = std::max(std::min(w, w_ref + dw_a), w_ref - dw_d);
+    }
+  }
+  // Case 2: pure velocity
+  if (fabs(w) < w_threshold_)
+  {
+    cmd_vel.angular.z = 0;
+    // Limitations to linear velocity
+    if (v_max_neg_ <= v && v <= v_min_neg_)          // 'normal' negative case, limit acceleration
+    {
+      cmd_vel.linear.x = v;
+      // float v_ref = std::max(std::min(v_agent_, v_min_neg_ - dv_a), v_max_neg_ + dv_d);
+      // cmd_vel.linear.x = std::max(std::min(v, v_ref + dv_a), v_ref - dv_d);
+    }
+    else if (v_min_neg_ < v && v <= -v_threshold_) // linear velocity smaller than min value, scale up
+      cmd_vel.linear.x = v_min_neg_;
+    else if (v_threshold_ <= v && v < v_min_) // linear velocity smaller than min value, scale up
+      cmd_vel.linear.x = v_min_;
+    else if (v_min_ <= v && v <= v_max_)       // 'normal' positive case, limit acceleration
+    {
+      cmd_vel.linear.x = v;
+      // float v_ref = std::max(std::min(v_agent_, v_max_ - dv_a), v_min_ + dv_d);
+      // cmd_vel.linear.x = std::max(std::min(v, v_ref + dv_a), v_ref - dv_d);
+    }
+  }
+  // Case 3: linear and angular velocity
+  if (fabs(v) >= v_threshold_ && fabs(w) >= w_threshold_)
+  {
+    // Map linear and angular velocity to individual wheel velocities
+    float v_left = v - w * (base_width_ / 2);
+    float v_right = v + w * (base_width_ / 2);
+    // Calculated squared metric of combined velocities
+    float v_sq = sqrt(pow(v_left,2) + pow(v_right,2));
+    if (v_sq < v_min_)
+    {
+      // Scale v_left & v_right according to law of similar triangles. A' = A*C'/C
+      v_left = v_left * v_min_ / v_sq;
+      v_right = v_right * v_min_ / v_sq;
+      cmd_vel.angular.z = (v_right - v_left) * (base_width_ / 2);
+      cmd_vel.linear.x = (v_left + v_right)/2;
+    }
+    else  // 'normal case. Limit accelerations both v & w
+    {
+      cmd_vel.linear.x = v;
+      cmd_vel.angular.z = w;
+      // float w_ref = base_utils::sign(w_agent_) * std::max(std::min(std::fabs(w_agent_), w_max_ - dw_a), w_min_ + dw_d);
+      // cmd_vel.angular.z = std::max(std::min(w, w_ref + dw_a), w_ref - dw_d);      
+      // float v_ref = std::max(std::min(v_agent_, v_max_ - dv_a), v_min_ + dv_d);
+      // cmd_vel.linear.x = std::max(std::min(v, v_ref + dv_a), v_ref - dv_d);
+    }
+  }
+  // Velocity outer limits
+  if (fabs(w) > w_max_)
+        cmd_vel.angular.z = base_utils::sign(w) * w_max_;
+  if (v < v_max_neg_)
+      cmd_vel.linear.x = v_max_neg_;
+  else if (v > v_max_)
+      cmd_vel.linear.x = v_max_;
+
+  return cmd_vel;
+}
+
+
+
+Second backup
+
+// Limits the velocity according to the parameter set by setParameters
+// Returns the limited velocity as a Twist
+void VelUtils::limitVelocity(float &v, float &w)
+{
+  // Limit velocity command to within velocity & acceleration limits
+  // Case 1: pure rotation
+  if (fabs(v) < v_threshold_)
+  {
+    v = 0;
+    // // Limitations to angular velocity
+    // if (w_threshold_ <= fabs(w) && fabs(w) < w_min_) // rotational velocity smaller than min value, scale up
+    //   w = base_utils::sign(w) * w_min_;
+  }
+  // Case 2: pure velocity
+  if (fabs(w) < w_threshold_)
+  {
+    w = 0;
+    // // Limitations to linear velocity
+    // if (v_min_neg_ < v && v <= -v_threshold_) // linear velocity smaller than min value, scale up
+    //   v = v_min_neg_;
+    // else if (v_threshold_ <= v && v < v_min_) // linear velocity smaller than min value, scale up
+    //   v = v_min_;
+  }
+  // Case 3: linear and angular velocity
+  if (fabs(v) >= v_threshold_ || fabs(w) >= w_threshold_)
+  {
+    // Map linear and angular velocity to individual wheel velocities
+    float v_left = v - w * base_width_;
+    float v_right = v + w * base_width_;
+    //    if (fabs(v_left) < v_min_)
+    //      v_left = base_utils::sign(v_left)*v_min_;
+    //    if (fabs(v_right) < v_min_)
+    //      v_right = base_utils::sign(v_right)*v_min_;   
+
+    // Calculated squared metric of combined velocities
+    float v_sq = sqrt(pow(v_left,2) + pow(v_right,2));
+    if (v_sq < sqrt(2)*v_min_)
+    {
+      // Scale v_left & v_right according to law of similar triangles. A' = A*C'/C
+      v_left = v_left * sqrt(2)*v_min_ / v_sq;
+      v_right = v_right * sqrt(2)*v_min_ / v_sq;
+      w = (v_right - v_left) / (2*base_width_);
+      v = (v_left + v_right)/2;
+    }
+  }
+  // Velocity outer limits
+  if (fabs(w) > w_max_)
+        w = base_utils::sign(w) * w_max_;
+  if (v < v_max_neg_)
+      v = v_max_neg_;
+  else if (v > v_max_)
+      v = v_max_;
+}
+

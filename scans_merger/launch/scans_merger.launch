@@ -1,0 +1,11 @@
+<?xml version="1.0"?> 
+<launch>
+
+  <node name="scans_merger" pkg="scans_merger" type="scans_merger_node">
+	<rosparam command="load" file="$(find scans_merger)/config/scans_merger_params.yaml" />
+	<remap from="front_scan" to="laser_left/scan/filtered"/>		
+    	<remap from="rear_scan" to="laser_right/scan/filtered"/>	
+  </node>
+
+</launch>
+

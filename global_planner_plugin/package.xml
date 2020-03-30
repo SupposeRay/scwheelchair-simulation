@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>global_planner_plugin</name>
+  <version>0.2.1</version>
+  <description>
+    global_planner_plugin
+  </description>
+  <maintainer email="martijn.krijnen@ntu.edu.sg">Martijn Krijnen</maintainer>
+  <license>TBD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>costmap_2d</depend>
+  <depend>nav_core</depend>
+  <depend>pluginlib</depend>
+  <depend>roscpp</depend>
+
+  <export>
+    <nav_core plugin="${prefix}/bgp_plugin.xml" />
+  </export>
+</package>

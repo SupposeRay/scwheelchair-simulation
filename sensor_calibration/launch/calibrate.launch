@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="sensor_calibration" type="scan_to_angle.py" name="scan_to_angle" >
+    <param name="min_angle" value="-0.3" />
+    <param name="max_angle" value="0.3" />
+    <remap from="scan" to="laser_left/scan" />
+  </node>
+
+  <node pkg="sensor_calibration" type="calibrate.py" name="sensor_calibration" output="screen" required="true">
+    <remap from="imu" to="/imu/data" />
+    <remap from="cmd_vel" to="cmd_vel" />
+    <remap from="scan_angle" to="scan_angle" />
+    <remap from="odom" to="odom" />
+  </node>
+
+</launch>

@@ -1,0 +1,22 @@
+v_max: 1.0 # upper velocity limit 
+v_min: 0.6 # lower velocity limit (deadzone)
+v_max_neg: -1.0 # backwards upper velocity limit, should be negative
+v_threshold: 0.1 # any velocity command below this threshold will be ignored
+
+w_max: 4.0 # upper angular velocity limit 
+w_min: 2.0 # lower angular velocity limit. This should normally be 2*v_min/base_width
+w_threshold: 0.1  # any velocity command below this threshold will be ignored
+
+# Acceleration / Deceleration limits
+acc_lim_x: 1.0 
+dec_lim_x: 1.0 
+acc_lim_theta: 2.0
+dec_lim_theta: 2.0 
+
+# Distance between the two wheels
+base_width: 0.5
+
+# footprint loaded as list of points, i.e. [x1, y1, x2, y2 ..]
+footprint: [0.3, 0.25, 0.3, -0.25, -0.6, -0.25, -0.6, 0.25] 
+# if radius is used instead of footprint
+robot_radius: 0.5
