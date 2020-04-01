@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="shared_dwa_lz" type="shared_dwa_lz" name="shared_dwa_lz" output="screen">
+    <rosparam file="$(find shared_dwa_lz)/config/shared_dwa_config.yaml" command="load"/>
+    <!--remap from="/trajectory_generator/goal" to="/joystick_goal/goal" /-->
+    <!--remap from="/encoders/odom" to="/odom" /--> 
+    <remap from="/shared_dwa/cmd_vel" to="/cmd_vel" /> 
+  </node>
+
+</launch>

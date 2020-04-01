@@ -1,0 +1,68 @@
+
+publish_interval: 0.2
+# the interval of publishing results    unit: s
+
+
+sample_interval: 0.5
+# the interval between 2 consective samples   unit: s
+
+
+sample_time: 5
+# the prediction horizon, namely the total time to predict in the future    unit: s
+
+
+v_sample: 10
+# number of samples along linear velocity axis in each dynamic window
+
+
+w_sample: 10
+# number of samples along angular velocity axis in each dynamic window
+
+
+v_acclrt: 0.2
+# the linear accleration, must be a positive number   unit: m/s^2
+
+v_dclrt: -0.2
+# the linear decleration, must be a negative number   unit: m/s^2
+
+w_acclrt: 0.523
+# the angular accleration, must be a positive number   unit: rad/s^2
+
+w_dclrt: -0.523
+# the angular decleration, must be a negative number   unit: rad/s^2
+
+
+v_max_robot: 1.0
+# the physical maximum forward velocity of the robot, must be a positive number    unit: m/s
+
+
+v_min_robot: -1.0
+# the physical maximum backward velocity of the robot, must be a negative number    unit: m/s
+
+
+w_max_robot: 1.5
+# the physical maximum angular velocity of the robot, must be a positive number    unit: rad/s
+
+
+fixed_frame_id: "map"
+# the world frame id
+
+
+base_frame_id: "base_footprint"
+# the local frame id
+
+
+footprint_mode: "radius"
+# the footprint mode for collision check
+# options: "radius", "rectangle"
+# "radius": use an envelope circle to represent the footprint of the robot
+# "rectangle": use 4 corner points to represent the footprint of the robot
+
+
+r_collision: 0.5
+# when choosing "radius" footprint mode, this stands for the radius of the robot
+
+
+rectangle_point: [0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5]
+# when choosing "rectangle" footprint mode, this stands for the coordinates of 4 corner points of the robot
+# the sequence of this list is x1 y1 x2 y2 x3 y3 x4 y4 with a counter-clockwise
