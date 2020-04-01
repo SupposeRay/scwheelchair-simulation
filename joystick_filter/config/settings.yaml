@@ -9,8 +9,8 @@ publish_frequency: 10.0
 ## joystick mapping parameters
 # kv and kw are the linear constants mapping the joystick input (normalized) to linear and angular velocity v and w. 
 # Since joystick input is normalized, kv and kw also indicate the maximum velocity output.
-kv: 1.0
-kw: 4.0
+kv: 0.8
+kw: 1.0
 deadzone: 0.25 # v_threshold = kv*deadzone
 control_exponent: 1.5
 

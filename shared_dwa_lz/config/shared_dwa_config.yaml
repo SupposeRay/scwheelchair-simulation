@@ -40,7 +40,7 @@ v_min_robot: -1.0
 # the physical maximum backward velocity of the robot, must be a negative number    unit: m/s
 
 
-w_max_robot: 1.5
+w_max_robot: 1.0
 # the physical maximum angular velocity of the robot, must be a positive number    unit: rad/s
 
 
