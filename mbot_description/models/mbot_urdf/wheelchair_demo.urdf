@@ -1,0 +1,206 @@
+<?xml version="1.0" ?>
+<robot name="wheelchair_demo">
+
+    <link name="base_link">
+        <visual>
+            <origin xyz=" 0 0 0.5" rpy="0 0 0" />
+            <geometry>
+                <box size = "0.5 0.5 0.05"/>
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="left_wheel_joint" type="continuous">
+        <origin xyz="-0.15 0.275 0.3" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="left_wheel_link"/>
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <link name="left_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.3" length = "0.05"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="right_wheel_joint" type="continuous">
+        <origin xyz="-0.15 -0.275 0.3" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="right_wheel_link"/>
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <link name="right_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.3" length = "0.05"/>
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="backrest_joint" type="fixed">
+        <origin xyz="-0.275 0 0.725" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="backrest_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="backrest_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size = "0.05 0.5 0.5"/>
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="legrest_joint" type="fixed">
+        <origin xyz="0.34 0 0.4" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="legrest_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="legrest_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0.7854 0" />
+            <geometry>
+                <box size = "0.3 0.5 0.05"/>
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="left_armrest_joint" type="fixed">
+        <origin xyz="-0.05 0.225 0.625" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="left_armrest_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="left_armrest_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size = "0.4 0.05 0.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1 0 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="right_armrest_joint" type="fixed">
+        <origin xyz="-0.05 -0.225 0.625" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="right_armrest_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="right_armrest_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <box size = "0.4 0.05 0.2"/>
+            </geometry>
+            <material name="red">
+                <color rgba="1 0 0 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="left_casterholder_joint" type="fixed">
+        <origin xyz="0.35 0.225 0.25" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="left_casterholder_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="left_casterholder_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.02" length = "0.3"/>
+            </geometry>
+            <material name="blue">
+                <color rgba="0 0 1 1"/>
+            </material>
+        </visual>
+    </link>
+   
+    <joint name="right_casterholder_joint" type="fixed">
+        <origin xyz="0.35 -0.225 0.25" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="right_casterholder_link"/>
+        <axis xyz="0 0 0"/>
+    </joint>
+
+    <link name="right_casterholder_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="0.02" length = "0.3"/>
+            </geometry>
+            <material name="blue">
+                <color rgba="0 0 1 1"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="left_caster_joint" type="continuous">
+        <origin xyz="0 0 -0.19" rpy="0 0 0"/>
+        <parent link="left_casterholder_link"/>
+        <child link="left_caster_link"/>
+        <axis xyz="1 1 0"/>
+    </joint>
+
+    <link name="left_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="0.06" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95"/>
+            </material>
+        </visual>
+    </link>
+
+    <joint name="right_caster_joint" type="continuous">
+        <origin xyz="0 0 -0.19" rpy="0 0 0"/>
+        <parent link="right_casterholder_link"/>
+        <child link="right_caster_link"/>
+        <axis xyz="1 1 0"/>
+    </joint>
+
+    <link name="right_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="0.06" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95"/>
+            </material>
+        </visual>
+    </link>
+
+</robot>

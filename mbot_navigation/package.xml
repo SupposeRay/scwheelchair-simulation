@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>mbot_navigation</name>
+  <version>0.0.0</version>
+  <description>The mbot_navigation package</description>
+
+  <maintainer email="martijn.krijnen@ntu.edu.sg">Martijn Krijnen</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>move_base_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>  
+  <depend>mbot_gazebo</depend>
+  <depend>mbot_description</depend>
+
+  <export>
+  </export>
+</package>

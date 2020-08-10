@@ -1,0 +1,59 @@
+#These two params were in base_local_planner yaml file. Not sure if applicable in dwa as well. 
+#recovery_behavior_enabled: false
+#clearing_rotation_allowed: false
+
+DWAPlannerROS: 
+# Robot configuration parameters
+  acc_lim_x: 1.5,
+  acc_lim_y: 0.0,
+  acc_lim_th: 1.2,
+  max_trans_vel: 0.55, # default
+  min_trans_vel: 0.0,
+  max_vel_x: 0.5,
+  min_vel_x: -0.1,
+  max_vel_y: 0.0,
+  min_vel_y: 0.0,
+  max_rot_vel: 1.0, # default
+  min_rot_vel: -1.0, # default
+# Goal tolerance parameters
+  yaw_goal_tolerance: 0.1,
+  xy_goal_tolerance: 0.3,
+  latch_xy_goal_tolerance: true,
+# Forward simulation parameters
+  sim_time: 1.0,
+  sim_granularity: 0.025,
+  angular_sim_granularity: 0.025,
+  vx_samples: 8,
+  vy_samples: 0,
+  vth_samples: 20,
+  controller_frequency: 20.0, # default
+# Trajectory scoring parameters
+  path_distance_bias: 5.0,
+  goal_distance_bias: 9.0,  
+  occdist_scale: 0.01,
+  forward_point_distance: 0.325,
+  stop_time_buffer: 0.2,
+  scaling_speed: 0.25,
+  max_scaling_factor: 0.2, 
+  publish_cost_grid: true,
+# oscillation prevention parameters
+  oscillation_reset_dist: 0.05,
+# Global plan parameters
+  prune_plan: true,
+  meter_scoring: true
+
+# Other parameters not mentioned in documentation but found in base_local_planner.
+# Robot config
+#  min_in_place_vel_theta: 0.0
+#  rot_stopped_vel: 0.5,
+#  trans_stopped_vel: 0.0,
+#  backup_vel: -0.1 # default
+#  escape_vel: -0.1 # default
+#  acc_limit_trans: 0.1,#
+#  holonomic_robot: false,
+# Others
+#  oscillation_reset_angle: 0.2,
+#  use_dwa: true,
+#  restore_defaults: false,
+
+

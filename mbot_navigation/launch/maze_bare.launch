@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!-- initiate mbot maze simulation -->
+    <include file="$(find mbot_gazebo)/launch/maze_mbot.launch" />
+
+    <!-- run rviz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mbot_navigation)/rviz/mbot_shared_dwa.rviz"/>
+
+</launch>

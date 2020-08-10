@@ -1,0 +1,20 @@
+<launch>
+	<arg name="model" default="$(find xacro)/xacro --inorder '$(find mbot_description)/urdf/xacro/nuric/wheelchair.urdf.xacro'" />
+	<arg name="gui" default="true" />
+
+	<param name="robot_description" command="$(arg model)" />
+
+    <!-- set GUI parameters to show joint control plug-in -->
+	<param name="use_gui" value="$(arg gui)"/>
+
+    <!-- run joint_state_publisher node and publish joint status  -->
+	<node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+    <!-- run robot_state_publisher node and publish tf -->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <!-- run rviz visualized interface -->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find mbot_description)/config/mbot.rviz" required="true" />
+
+</launch>
+
