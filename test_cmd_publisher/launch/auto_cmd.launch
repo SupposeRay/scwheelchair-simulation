@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <node name="test_cmd_publisher" pkg="test_cmd_publisher" type="test_cmd_publisher" output="screen">
-    <rosparam command="load" file="$(find test_cmd_publisher)/config/settings.yaml" />
-  <remap from="/cmd_vel" to="/cmd_vel"/>
-  </node>
-</launch>

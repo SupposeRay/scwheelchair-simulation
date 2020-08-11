@@ -1,7 +1,0 @@
-<library path="lib/libglobal_planner_plugin">
-  <class name="global_planner_plugin/GlobalPlannerPlugin" type="global_planner_plugin::GlobalPlannerPlugin" base_class_type="nav_core::BaseGlobalPlanner">
-    <description>
-	plugin planner
-    </description>
-  </class>
-</library>

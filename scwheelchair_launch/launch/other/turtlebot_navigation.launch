@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <!-- required additional transforms for turtlebot -->
+    <node pkg="robot_tf" type="turtlebot_tf_broadcaster" name="turtlebot_tf_broadcaster" output="screen" />
+
+    <!-- set the file of the map -->
+    <arg name="map" default="rris.yaml" />
+
+    <!-- map server and load the map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find scwheelchair_launch)/maps/$(arg map)"/>
+
+    <!-- amcl node: calculates discrepancy between odom frame and map frame, output = tf map -> odom -->
+    <node pkg="amcl" type="amcl" name="amcl" output="screen" clear_params="true">
+        <rosparam command="load" file="$(find scwheelchair_launch)/config/amcl_params.yaml" />
+        <!--remap from="/scan" to="/laser_left/scan/filtered"/--> 
+    </node>
+
+    <!--<node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" clear_params="true">
+    	<rosparam file="$(find scwheelchair_launch)/config/gmapping.yaml" command="load" />
+    </node>-->
+
+    <!-- move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+    <rosparam file="$(find scwheelchair_launch)/config/planners.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/move_base_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_planner_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/global_costmap_params.yaml" command="load" />
+    <param name="planner_frequency" value="1.0" />
+  </node>
+
+</launch>

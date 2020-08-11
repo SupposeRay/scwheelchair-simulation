@@ -265,9 +265,9 @@ non-ROS:
 1. Run Gazebo simulation environment with the museum scene and the robot
  run in terminal: roslaunch mbot_gazebo view_mbot_gazebo_museum.launch
 2. Run the Rviz visualization script
- roslaunch scat_launch visualization.launch 
+ roslaunch scwheelchair_launch visualization.launch 
 3. Run the control_keyboard script (optional)
  roslaunch control_keyboard control_keyboard.launch
-4. Run the shared_dwa_lz package to do the shared control
- roslaunch shared_dwa_lz shared_dwa_lz.launch
+4. Run the shared_dwa package to do the shared control
+ roslaunch shared_dwa shared_dwa.launch
  

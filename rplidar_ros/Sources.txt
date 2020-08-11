@@ -1,5 +1,0 @@
-https://github.com/Slamtec/rplidar_sdk/wiki
-
-https://answers.ros.org/question/320377/using-multiple-rplidar-on-a-single-system/
-
-https://github.com/robopeak/rplidar_ros/wiki/How-to-use-rplidar

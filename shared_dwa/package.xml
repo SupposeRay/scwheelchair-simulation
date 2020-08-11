@@ -2,24 +2,20 @@
 <package format="2">
   <name>shared_dwa</name>
   <version>0.0.0</version>
-  <description>The dynamic_window_approach package</description>
+  <description>The shared dwa package</description>
 
-  <maintainer email="martijn.krijnen@ntu.edu.sg">Martijn Krijnen</maintainer>
+  <maintainer email="ZHEN001@e.ntu.edu.sg">Lei Zhen(Ray)</maintainer>
 
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>roscpp</build_depend>
 
-  <depend>roscpp</depend>
-  <depend>scat_libs</depend>  
-  <depend>scat_msgs</depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>roscpp</exec_depend>
 
-  <depend>costmap_2d</depend>
-  <depend>roslib</depend>
-  <depend>tf</depend>
-  <depend>geometry_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>  
+  <export>
 
+  </export>
 </package>

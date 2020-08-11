@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!-- Can be used for ROS navigation stack based Shared Control -->
+
+<launch>
+  <arg name="sim" default="false"/>   <!--determines whether to launch hardware drivers or not -->
+  <arg name="global" default="false"/>   <!-- whether to use global localization and move_base (required when using sc_type = traj/goal) -->
+  <arg name="joy_topic" default="user"/>   <!--selects joy_topic: e.g. "user" or "remote" results in /user/joy or /remote/joy-->
+  <arg name="map" default="rris.yaml" />
+  <arg name="debug" default="true"/>   <!--prints debugging info if true -->
+
+  <arg name="adaptive" default="false"/>
+  <arg name="voronoi" default="false"/>
+  <arg name="prediction_horizon" default="6"/>
+  <arg name="sampling_time" default="0.4"/>
+
+  <arg name="bot_params" default="scatwheel_params" />  
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="odom_frame" default="odom"/>
+  <arg name="fixed_frame" default="map"/>
+
+    <!-- Launch hardware drivers, alternatively, use the 'bare' simulation launch files  in mbot_navigation or scatwheel_navigation -->
+    <include unless="$(arg sim)" file="$(find scwheelchair_launch)/launch/hardware_drivers.launch">
+	  <arg name="base_frame" default="$(arg base_frame)"/>  
+    </include>
+
+    <!-- Launch Localization pipeline -->
+    <include unless="$(arg sim)" file="$(find scwheelchair_launch)/launch/localization.launch">
+	  <arg name="map" value="$(arg map)" />
+	  <arg name="base_frame" value="$(arg base_frame)"/>  
+	  <arg name="fixed_frame" value="$(arg fixed_frame)"/>  
+	  <arg name="global" value="$(arg global)"/>  
+    </include>
+
+    <!-- Launch shared control module -->
+    <node pkg="shared_dwa_lz" type="shared_dwa_lz" name="shared_dwa_lz" output="screen">
+      <rosparam file="$(find shared_dwa_lz)/config/shared_dwa_config.yaml" command="load"/>
+      <remap from="/shared_dwa/cmd_vel" to="/cmd_vel" /> 
+      <remap unless="$(arg sim)" from="/encoders/odom" to="/ekf/odom"/>
+      <!--<remap if="$(arg sim)" from="/odom" to="/encoders/odom"/>-->
+    </node>
+
+    <!-- Joystick filter: maps from raw user input to cmd_vel -->
+   <node pkg="joystick_filter" type="joystick_filter" name="joystick_filter" output="screen">
+    <rosparam command="load" file="$(find joystick_filter)/config/settings.yaml" />
+    <remap from="/user/joy" to ="/$(arg joy_topic)/joy" />
+    <param name="use_medianfilter" value="false" />
+    <param name="use_kalmanfilter" value="true" />
+    <param name="adaptive_kalman" value="false" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+
+    <!-- move_base node, launched when arg global = true -->
+  <node if="$(arg global)" pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+    <remap from="/odom" to="/ekf/odom"/>
+    <remap from="/cmd_vel" to="/control/cmd_vel"/>
+    <param name="base_global_planner" value="global_planner_plugin/GlobalPlannerPlugin" />    
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />
+    <rosparam file="$(find scwheelchair_launch)/config/move_base_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_planner_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/global_costmap_params.yaml" command="load" />
+    <param name="planner_frequency" value="0.5" />
+  </node>
+
+</launch>

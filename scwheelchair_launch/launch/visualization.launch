@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find scwheelchair_launch)/rviz/mbot_shared_dwa.rviz" />	
+</launch>

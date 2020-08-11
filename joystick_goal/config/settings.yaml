@@ -1,7 +1,0 @@
-node_active: true
-debug: false
-publish_frequency: 4
-goal_dist_max: 5.0 # max goal distance [m]
-coll_threshold: 20
-node_active: false
-joy_threshold: 0.3

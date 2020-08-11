@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="sc_active" default="true" />     
+  <arg name="sc_type" default="dwa" />     
+  <arg name="bot_params" default="scatwheel_params"/>  
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="fixed_frame" default="odom"/>
+  <arg name="adaptive" default="false"/>
+  <arg name="voronoi" default="false"/>
+  <arg name="prediction_horizon" default="6"/>
+  <arg name="sampling_time" default="0.4"/>
+  <arg name="global" default="false"/>
+  <arg name="sim" default="true"/> 
+  <arg name="debug" default="false"/> 
+  <arg name="obst_type" default="scan"/> 
+
+  <arg name="laser_pkg" default="laser_line"/>   <!--"laser_line","line_extractor" or "obstacle_detector" -->  
+  <include
+	file="$(find scwheelchair_launch)/launch/laser_obstacles.launch">
+    <arg name="laser_pkg" value="$(arg laser_pkg)" />
+  </include>
+
+    <!-- Launch shared_dwa -->
+<group if="$(eval sc_type == 'dwa')">
+  <node pkg="shared_dwa" type="shared_dwa" name="shared_dwa" output="screen">	
+    <rosparam command="load" file="$(find shared_dwa)/config/settings.yaml" />    
+    <rosparam command="load" file="$(find scwheelchair_launch)/config/$(arg bot_params).yaml" />
+    <remap from="/cmd_vel" to="/control/cmd_vel"/>
+    <remap from="/obstacles" to="/scan_obstacles"/>
+    <remap unless="$(arg sim)" from="/odom" to="/ekf/odom"/>
+    <remap if="$(arg sim)" from="/odom" to="/encoders/odom"/>
+    <param name="node_active" value="$(arg sc_active)" />
+    <param name="collision_method" value="footprint" />
+    <param name="obst_type" value="$(arg obst_type)" />
+    <param name="fixed_frame_id" value="$(arg fixed_frame)" />
+    <param name="base_frame_id" value="$(arg base_frame)" />    
+    <param name="use_adaptive" value="$(arg adaptive)" />
+    <param name="use_ref_trajectory" value="$(arg voronoi)" />
+    <param if="$(arg voronoi)" name="Kref" value="0.0" />
+    <param name="prediction_horizon" value="$(arg prediction_horizon)" />
+    <param name="sampling_time" value="$(arg sampling_time)" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>    
+
+    <node if="$(arg voronoi)" pkg="sparse_voronoi" type="sparse_voronoi" name="sparse_voronoi" output="screen">
+      <rosparam command="load" file="$(find sparse_voronoi)/config/settings.yaml" />
+      <remap from="/obstacles" to="/scan_obstacles" />
+      <param name="fixed_frame_id" value="$(arg fixed_frame)" />
+      <param name="base_frame_id" value="$(arg base_frame)" />
+      <param name="prediction_horizon" value="$(arg prediction_horizon)" />
+      <param name="sampling_time" value="$(arg sampling_time)" />
+      <param name="use_dynamic_voronoi" value="false" />
+      <param name="use_dynamic_constraint" value="false" />
+      <param if="$(arg global)" name="use_dynamic_reward" value="false" />
+      <param name="debug" value="$(arg debug)"/>
+    </node>
+</group>
+
+    <!-- Launch shared_mpc -->
+<group if="$(eval sc_type == 'mpc')">
+  <node pkg="shared_mpc" type="shared_mpc" name="shared_mpc" output="screen">
+    <rosparam command="load" file="$(find scwheelchair_launch)/config/$(arg bot_params).yaml" />
+    <rosparam command="load" file="$(find shared_mpc)/config/settings.yaml" />        
+    <rosparam command="load" file="$(find shared_mpc)/config/ipopt_params.yaml" />    
+    <rosparam command="load" file="$(find shared_mpc)/config/voronoi_params.yaml" />
+    <remap from="/cmd_vel" to="/control/cmd_vel"/>
+    <remap unless="$(arg sim)" from="/odom" to="/ekf/odom"/>
+    <remap if="$(arg sim)" from="/odom" to="/encoders/odom"/>
+    <param name="node_active" value="$(arg sc_active)" />
+    <param name="fixed_frame_id" value="$(arg fixed_frame)" />
+    <param name="base_frame_id" value="$(arg base_frame)" />    
+    <param name="prediction_horizon" value="$(arg prediction_horizon)" />
+    <param name="sampling_time" value="$(arg sampling_time)" />
+    <param name="pos_method" value="local" />    
+    <param name="use_adaptive" value="$(arg adaptive)" />
+    <param name="use_voronoi" value="$(arg voronoi)" />
+    <param name="use_corner_constraints" value="false" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+</group>
+
+  <!-- Launch trajectory generator -->
+<group if="$(eval sc_type == 'traj')">
+  <node pkg="trajectory_generator" type="trajectory_generator" name="trajectory_generator" output="screen">
+    <rosparam command="load" file="$(find trajectory_generator)/config/settings.yaml" />
+    <remap from="/trajectory_generator/goal" to="/move_base_simple/goal"/>    
+    <remap from="/trajectory_generator/trajectory" to="/global_planner_plugin/trajectory"/>
+    <param name="node_active" value="$(arg sc_active)" />
+    <param name="fixed_frame_id" value="$(arg fixed_frame)" />
+    <param name="base_frame_id" value="$(arg base_frame)" />
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+</group>
+
+    <!-- Launch joystick goal publisher -->
+<group if="$(eval sc_type == 'goal')">
+  <node pkg="joystick_goal" type="joystick_goal" name="joystick_goal" output="screen">
+    <rosparam command="load" file="$(find joystick_goal)/config/settings.yaml" />
+    <remap from="/user/goal" to="/move_base_simple/goal"/>    
+    <remap from="/user/joy" to="/user/joy/filtered"/>
+    <param name="node_active" value="$(arg sc_active)" />
+    <param name="fixed_frame_id" value="$(arg fixed_frame)" />
+    <param name="base_frame_id" value="$(arg base_frame)" />    
+    <param name="debug" value="$(arg debug)"/>
+  </node>
+</group>
+</launch>

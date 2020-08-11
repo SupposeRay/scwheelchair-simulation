@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="navmode" default="autonomous"/>
+  <arg name="base_frame" default="base_footprint"/>
+  <arg name="fixed_frame" default="map"/>
+  <arg name="map" default="rris.yaml" />
+  <arg name="bot_params" default="turtlebot_params" />  
+  <arg name="sctype" default="dwa"/>  
+  <arg name="joy" default="remote"/>   <!--"user" or "remote" -->
+
+    <!-- required additional transforms for turtlebot -->
+  <node pkg="robot_tf" type="turtlebot_tf_broadcaster" name="turtlebot_tf_broadcaster" output="screen" />
+
+    <!-- Launch Master -->
+    <node pkg="scat_master" name="scat_master" type="scat_master"  output="screen">
+	    <param name="mode" value="$(arg navmode)" />    
+	    <param name="sc_type" value="$(arg controltype)" />    
+	    <param name="base_global_planner" value="global_planner/GlobalPlanner" />    
+	    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />
+	    <param name="switch_threshold" value="0.6" />
+	<remap from="/user/joy" to="/joy_data/remote"/>
+    </node>
+ 
+  <node pkg="vel_safety_filter" type="vel_safety_filter" name="vel_safety_filter" output="screen">
+    <rosparam command="load" file="$(find vel_safety_filter)/config/settings.yaml" />    
+    <rosparam command="load" file="$(find scwheelchair_launch)/config/$(arg bot_params).yaml" />
+  </node>
+
+    <!-- map server and load the map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find scwheelchair_launch)/maps/$(arg map)"/>
+
+    <!-- amcl node: calculates discrepancy between odom frame and map frame, output = tf map -> odom -->
+    <node pkg="amcl" type="amcl" name="amcl" output="screen" clear_params="true">
+        <rosparam command="load" file="$(find scwheelchair_launch)/config/amcl_params.yaml" />
+        <!--remap from="/scan" to="/laser_left/scan/filtered"/--> 
+    </node>
+
+    <!--<node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" clear_params="true">
+    	<rosparam file="$(find scwheelchair_launch)/config/gmapping.yaml" command="load" />
+    </node>-->
+
+    <!-- move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
+    <remap from="/cmd_vel" to="/control/cmd_vel"/>
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" />    
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS" />
+    <rosparam file="$(find scwheelchair_launch)/config/move_base_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_planner_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find scwheelchair_launch)/config/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find scwheelchair_launch)/config/global_costmap_params.yaml" command="load" />
+    <param name="planner_frequency" value="1.0" />
+  </node>
+
+    <!-- Joystick controllers. Use either joystick_filter or control_joystick (no filter) -->
+  <node pkg="joystick_filter" type="joystick_filter" name="joystick_filter" output="screen">
+    <rosparam command="load" file="$(find joystick_filter)/config/settings.yaml" />
+      <remap from="/user/joy" to ="/$(arg joy)/joy" />
+  </node>
+
+    <!-- Launch shared control module -->
+    <include file="$(find scwheelchair_launch)/launch/shared_control.launch">
+	  <arg name="use_$(arg sctype)" value="true" />
+    </include>
+
+</launch>
