@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import rospy
+import random
 from geometry_msgs.msg import Twist
 import sys, select, termios, tty
 
 msg = """
-Control mbot!
+Control mbot with Gaussian noise!
 ---------------------------
 Moving around:
    u    i    o
@@ -16,6 +17,7 @@ Moving around:
 q/z : increase/decrease max speeds by 10%
 w/x : increase/decrease only linear speed by 10%
 e/c : increase/decrease only angular speed by 10%
+r/v : increase/decrease standard deviation by 10%
 space key, k : force stop
 anything else : stop smoothly
 
@@ -42,6 +44,11 @@ speedBindings={
         'c':(1,.9),
           }
 
+noiseBindings={
+        'r':(1.1),
+        'v':(0.9),
+          }
+
 def getKey():
     tty.setraw(sys.stdin.fileno())
     rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
@@ -55,9 +62,14 @@ def getKey():
 
 speed = 0.5
 turn = 1.5
+mean = 0
+sigma = 0.1
 
 def vels(speed,turn):
     return "currently:\tspeed %s\tturn %s " % (speed,turn)
+
+def gnoise(mean,sigma):
+    return "current noise:\tmean %s\tsigma %s " % (mean,sigma)
 
 if __name__=="__main__":
     settings = termios.tcgetattr(sys.stdin)
@@ -78,6 +90,7 @@ if __name__=="__main__":
     try:
         print msg
         print vels(speed,turn)
+        print gnoise(mean, sigma)
         while(1):
             key = getKey()
 
@@ -95,6 +108,12 @@ if __name__=="__main__":
                 if (status == 14):
                     print msg
                 status = (status + 1) % 15
+            
+            elif key in noiseBindings.keys():
+                sigma = sigma * noiseBindings[key]   
+                count = 0
+
+                print gnoise(mean, sigma)
 
             elif key == ' ' or key == 'k' :
                 x = 0
@@ -110,8 +129,10 @@ if __name__=="__main__":
                     break
 
 
-            target_speed = speed * x
-            target_turn = turn * th
+            target_speed = speed * (x + random.gauss(mean,sigma))
+            target_turn = turn * (th + random.gauss(mean,sigma))
+            # target_speed = speed * x
+            # target_turn = turn * th
 
 
             if target_speed > control_speed:
@@ -139,7 +160,7 @@ if __name__=="__main__":
             pub.publish(twist)
 
     except:
-        print e
+        print ("Error")
 
     finally:
         twist = Twist()
