@@ -441,7 +441,7 @@ namespace shared_DWA
         //     w_command = - w_command / w_max_robot;
         // }
         // ROS_INFO_STREAM("v_command " <<  v_command << ", w_command " << w_command);
-        v_current = std::max( fabs(v_current / v_max_robot), 0.0001);
+        v_current = std::max( fabs(v_current / v_max_robot), (float)0.0001);
         w_current = w_current / w_max_robot;
         v_command = fabs(v_command) / v_max_robot;
         w_command = w_command / w_max_robot;
