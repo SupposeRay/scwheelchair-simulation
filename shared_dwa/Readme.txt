@@ -1,6 +1,18 @@
-According to ROS guidelines:
-- Also allow negative velocities
-- Add a second cost function method which uses the trajectory instead of a single goal position. 
-- Don't limit current DWA to v_user. Then if v_user = 0 ,  v = 0, which shouldn't happen. (too sudden braking, user will slide). Instead v_max = max(v_current-v_brake, v_user).
-- Member variables should have a trailing  underscore. 
-- different acclrt en brake values. 
+# shared_dwa package
+
+This package is the algorithm of shared control with DWA (dynamic window approach).
+
+The basic idea comes from the paper [The Shared Control Dynamic Window Approach for Non-Holonomic Semi-Autonomous Robots](https://ieeexplore.ieee.org/document/6840152)
+
+## subscribed topics
+
+- */odom*: the odometry of the agent, used for linear & angular velocity estimation
+- */scan*: the lidar info, used for collision detection and obstacle avoidance
+- */user/cmd_vel*: the standardized user input, denoted as desired linear & angular velocities
+
+## published topics
+
+- */shared_dwa/cmd_vel*: the final velocity command sent to the actuators
+
+
+
