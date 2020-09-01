@@ -3,8 +3,11 @@
 Whenever two-factor authentication is enabled, you might encouter issues with normal git commands, like `git clone`, `git pull`, because each time you will be required to log in your username and password, but after typing your username and password, you are likely to get the following prompt:
 
 `Username for 'https://github.com': your_user_name`
-`Password for 'https://your_user_name@github.com': `
+
+`Password for 'https://your_user_name@github.com':`
+
 `remote: Invalid username or password.`
+
 `fatal: Authentication failed for 'https://github.com/your_user_name/repo_name.git/'`
 
 ## Why is this happening?
