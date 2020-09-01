@@ -19,6 +19,6 @@ The answer can be found from the [GitHub Help Documentation](https://docs.github
 
 3. Go back to the terminal and save the authentication of git. (Otherwise, you will be asked to log in your account with the Personal Access Token each time you use git commands)
 
-run in terminal: `git config --global credential.helper store`
+   run in terminal: `git config --global credential.helper store`
 
 4. Re-attempt the command you were trying and use Personal Access Token in the place of your password.
