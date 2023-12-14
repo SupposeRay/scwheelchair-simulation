@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <arg name="xacro_file"  default="simple_human.xacro"/>
+    <arg name="rviz_file"   default="view"/>
+    <arg name="rviz"        default="true"/>
+
+    <arg name="joint_state_file"  default="default_joint.yaml"/>
+    <arg name="joint_state_gui"   default="false"/>
+
+    <!-- robot description -->
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(find model_human_skeleton)/urdf/simple_human.xacro' fixed_joint:=false" if="$(arg joint_state_gui)"/>
+    <param name="robot_description" command="$(find xacro)/xacro.py '$(find model_human_skeleton)/urdf/simple_human.xacro' fixed_joint:=true" unless="$(arg joint_state_gui)"/>
+    
+    <!-- joint state -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg joint_state_gui)"/>
+    <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg joint_state_gui)">
+      <rosparam command="load" file="$(find model_human_skeleton)/config/$(arg joint_state_file)" if="$(arg joint_state_gui)"/>
+    </node>
+
+    <!-- robot state -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <!-- rviz   -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find model_human_skeleton)/rviz/$(arg rviz_file).rviz" if="$(arg rviz)"/>
+
+</launch>

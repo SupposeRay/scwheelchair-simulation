@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rplidar_a3">
+
+    <xacro:include filename="$(find sensors)/rplidar_a3/xacro/RPLIDAR_A3_gazebo.xacro"/>
+
+    <xacro:macro name="RPLIDAR-A3" params="name:=laser topic_name:=scan min_angle:=-3.14159265 max_angle:=3.14159265 min_range:=0.2 max_range:=25.0 visualize:=true rate:=40 gpu:=false">
+
+        <material name="${name}_dark_grey">
+            <color rgba="0.3 0.3 0.3 1"/>
+        </material>
+        
+        <link name="${name}_base_link">
+            <collision>
+                <origin xyz="0 0 0" rpy="1.5707 0 1.5707"/>
+                <geometry>
+                    <mesh filename="package://sensors/rplidar_a3/meshes/rplidar.dae"  scale="0.001 0.001 0.001"/>
+                </geometry>
+            </collision>
+
+            <visual>
+                <origin xyz="0 0 0" rpy="1.5707 0 1.5707"/>
+                <geometry>
+                    <mesh filename="package://sensors/rplidar_a3/meshes/rplidar.dae"  scale="0.001 0.001 0.001"/>
+                </geometry>
+                <material name="${name}_dark_grey"/>
+            </visual>
+
+            <inertial>
+                <mass value="1e-5" />
+                <origin xyz="0 0 0" rpy="1.5707 0 1.5707"/>
+                <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+            </inertial>
+        </link>
+
+        <link name="${name}_frame"/>
+        <joint name="${name}_base_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="${name}_base_link" />
+            <child link="${name}_frame" />
+        </joint>
+
+        <!-- RPLidar Gazebo Plugin -->
+        <xacro:gazebo_a3 lidar_name="${name}" reference_link="${name}_base_link" topic_name="${topic_name}" frame_name="${name}_frame" min_angle="${min_angle}" max_angle="${max_angle}" min_range="${min_range}" max_range="${max_range}" visualize="${visualize}" rate="${rate}" gpu="${gpu}"/>
+    </xacro:macro>
+
+
+</robot>

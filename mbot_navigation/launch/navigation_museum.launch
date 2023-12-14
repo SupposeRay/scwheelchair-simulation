@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <!-- set the file of the map -->
+    <arg name="map" default="iscas_museum.yaml" />
+    <!-- <arg name="map" default="hospital.yaml" /> -->
+
+    <!-- run map server and load the map -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mbot_navigation)/maps/$(arg map)"/>
+
+    <!-- run move_base node -->
+    <!-- <include file="$(find mbot_navigation)/launch/move_base.launch"/> -->
+
+    <!-- initiate AMCL node -->
+    <include file="$(find mbot_navigation)/launch/amcl.launch" />
+
+    <!-- for virtual localization, a static coordinate transformation between /odom and /map is required -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0 0 0 0 0 0 /map /odom 100" /> -->
+
+    <!-- run rviz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mbot_navigation)/rviz/nav.rviz"/>
+
+</launch>

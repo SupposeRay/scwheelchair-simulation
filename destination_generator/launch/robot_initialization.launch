@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+<rosparam file="$(find destination_generator)/config/destination_generator.yaml" command="load"/>
+  <node name="robot_initialization" pkg="destination_generator" type="robot_initialization.py" output="screen">
+    <!-- <rosparam file="$(find destination_generator)/config/destination_generator.yaml" command="load"/> -->
+    <!-- <remap from="/joystick" to="/keyboard" /> -->
+  </node>
+</launch>

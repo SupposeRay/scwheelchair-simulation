@@ -1,17 +1,41 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(shared_dwa)
 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   cv_bridge
+  std_msgs
+  message_generation
+  actionlib_msgs
+  actionlib
+  tf2
+  tf2_ros
 )
 
 find_package(OpenCV)
 
+# add_service_files(
+#    FILES
+#    doorway_srv.srv
+# )
+
+add_action_files(
+  DIRECTORY action
+  FILES
+  doorway_detection.action
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  actionlib_msgs
+)
+
 catkin_package(
-  CATKIN_DEPENDS roscpp cv_bridge
+  CATKIN_DEPENDS roscpp cv_bridge actionlib actionlib_msgs
 )
 
 include_directories(
@@ -30,6 +54,7 @@ add_executable(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
+  # ${PROJECT_NAME}_generate_messages_cpp
 )
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}

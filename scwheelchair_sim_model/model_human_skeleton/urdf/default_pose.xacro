@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="https://www.ros.org/wiki/xacro">
+
+	<xacro:property name="hip_r_joint_angle" value="0"/>
+    <xacro:property name="hip_l_joint_angle" value="0"/>
+
+    <xacro:property name="knee_r_joint_angle" value="0"/>
+    <xacro:property name="knee_l_joint_angle" value="0"/>
+
+    <xacro:property name="shoulder_r_flexion_angle" value="0"/>
+    <xacro:property name="shoulder_l_flexion_angle" value="0"/>
+
+    <xacro:property name="shoulder_r_abduction_angle" value="0"/>
+    <xacro:property name="shoulder_l_abduction_angle" value="0"/>
+
+    <xacro:property name="shoulder_r_rotation_angle" value="0"/>
+    <xacro:property name="shoulder_l_rotation_angle" value="0"/>
+
+    <xacro:property name="elbow_r_angle" value="0"/>
+    <xacro:property name="elbow_l_angle" value="0"/>
+
+</robot>

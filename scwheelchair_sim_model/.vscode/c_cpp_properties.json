@@ -1,0 +1,23 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "",
+        "limitSymbolsToIncludedHeaders": true
+      },
+      "includePath": [
+        "/home/ky_rris/ros1_ws/y_temp_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/depthimage_to_laserscan/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/input_converter/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/path_belief_update/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/realsense_gazebo_plugin/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/shared_dwa/include/**",
+        "/home/ky_rris/ros1_ws/y_temp_ws/src/scwheelchair-simulation/scwheelchair_sim_model/plugins/velodyne_gazebo_plugins/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS"
+    }
+  ],
+  "version": 4
+}

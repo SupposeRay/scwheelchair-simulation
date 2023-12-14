@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<robot name="human_wc" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find model_human_skeleton)/urdf/simple_human.xacro"/>
+  <xacro:include filename="$(find model_scwheelchair)/urdf/model_scwheelchair.xacro"/>
+
+  <joint name="human_seat_joint" type="fixed">
+    <origin xyz="-0.1 0 0.32" rpy="0 0 0"/>
+    <parent link="seat_link"/>
+    <child link="human_base_link"/>
+  </joint>
+
+  <link name="viewer_link"/>
+  <joint name="head_viewer_joint" type="fixed">
+    <origin xyz="0 ${head_radius} 0" rpy="1.57 0 1.57"/>
+    <parent link="head_link"/>
+    <child link="viewer_link"/>
+  </joint>
+
+  <!-- camera -->
+  <gazebo reference="viewer_link">
+    <sensor type="camera" name="camera1">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <!-- <horizontal_fov>1.3962634</horizontal_fov> -->
+        <horizontal_fov>1.5707</horizontal_fov>
+        <image>
+          <width>960</width>
+          <height>540</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>firstpersonview</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+</robot>

@@ -1,0 +1,10 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <include file="$(find model_human_skeleton)/launch/pose.launch">
+        <arg name="pose_file"   value="sitting_pose.xacro"/>
+        <arg name="fixed_joint" value="true"/>
+        <arg name="gazebo_static" value="false"/>
+    </include>
+
+</launch>

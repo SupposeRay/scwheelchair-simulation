@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="hc_sr04">
+
+    <xacro:include filename="$(find sensors)/hc_sr04/xacro/HC_SR04_gazebo.xacro"/>
+
+    <xacro:macro name="HC-SR04" params="name:=ultrasound topic_name:=ultrasound_range sample:=5 sample_resolution:=1 fov:=0.2618 min_angle:=-0.1309 max_angle:=0.1309 min_range:=0.02 max_range:=2.0 range_resolution:=0.03 visualize:=true rate:=40">
+        
+        <material name="${name}_white">
+            <color rgba="1.0 1.0 1.0 1.0"/>
+        </material>
+
+        <link name="${name}_base_link">
+            <visual>
+                <origin xyz="0 0 0" rpy ="0 0 0"/>
+                <geometry>
+                    <mesh filename="package://sensors/hc_sr04/meshes/hc-sr04.stl"  scale="0.001 0.001 0.001"/>
+                </geometry>
+                <material name="${name}_white" />
+            </visual>
+
+            <collision>
+                <origin xyz="0 0 0" rpy ="0 0 0"/>
+                <geometry>
+                    <mesh filename="package://sensors/hc_sr04/meshes/hc-sr04.stl"  scale="0.001 0.001 0.001"/>
+                </geometry>
+            </collision>
+
+            <inertial>
+                <mass value="1e-5" />
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+            </inertial>
+        </link>
+
+        <link name="${name}_frame"/>
+        <joint name="${name}_base_joint" type="fixed">
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <parent link="${name}_base_link" />
+            <child link="${name}_frame" />
+        </joint>
+
+        <!-- Sonar Gazebo Plugin -->
+        <xacro:gazebo_hcsr04 name="${name}" reference_link="${name}_base_link" topic_name="${topic_name}" frame_name="${name}_frame" sample="${sample}" sample_resolution="${sample_resolution}" fov="${fov}" min_angle="${min_angle}" max_angle="${max_angle}" min_range="${min_range}" max_range="${max_range}" range_resolution="${range_resolution}" visualize="${visualize}" rate="${rate}"/>
+    </xacro:macro>
+
+</robot>

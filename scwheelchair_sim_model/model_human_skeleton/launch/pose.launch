@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<launch>
+
+  <arg name="model_name"  default="human"/>
+  <arg name="xacro_file"  default="simple_human.xacro"/>
+  <arg name="pose_file"   default="default_pose.xacro"/>
+  <arg name="fixed_joint" default="true"/>
+
+  <arg name="x"       default="0"/>
+  <arg name="y"       default="0"/>
+  <arg name="z"       default="0.55"/>
+  <arg name="roll"    default="0"/>
+  <arg name="pitch"   default="0"/>
+  <arg name="yaw"     default="0"/>
+
+  <arg name="gazebo_static" default="true"/>
+  <arg name="rviz"    default="true"/>
+
+  <!-- world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch"/>
+
+  <!-- robot description -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find model_human_skeleton)/urdf/$(arg xacro_file)' 
+                                           joint_pose_file:=$(arg pose_file) 
+                                           fixed_joint:=$(arg fixed_joint) 
+                                           gazebo_static:=$(arg gazebo_static)"/>
+  
+  <!-- joint state -->
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+
+  <!-- robot state -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <node name="$(arg model_name)_spawn" pkg="gazebo_ros" type="spawn_model" output="screen" respawn="false"
+        args="-urdf -param robot_description -model $(arg model_name) 
+              -x $(arg x) -y $(arg y) -z $(arg z)
+              -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)" />
+
+  <!-- rviz   -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find model_human_skeleton)/rviz/view.rviz" if="$(arg rviz)"/>
+
+</launch>

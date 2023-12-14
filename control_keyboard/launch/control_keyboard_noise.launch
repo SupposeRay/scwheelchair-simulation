@@ -3,6 +3,6 @@
   <node name="control_keyboard" pkg="control_keyboard" type="control_keyboard_noise.py" output="screen">
     <!--<param name="scale_linear" value="0.2" type="double"/>
     <param name="scale_angular" value="0.4" type="double"/>-->
-    <remap from="/cmd_vel" to="/user/cmd_vel"/> 
+    <!--<remap from="/cmd_vel" to="/user/cmd_vel"/> -->
   </node>
 </launch>

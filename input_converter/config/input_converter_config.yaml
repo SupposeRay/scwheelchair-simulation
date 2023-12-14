@@ -1,0 +1,27 @@
+publish_interval: 0.01
+# the interval of publishing results    unit: s
+
+
+input_source: "Joystick"
+# the input source
+# options: "Keyboard", "Joystick"
+
+
+filter_type: "None"
+# add filter to the published topic
+# options: "None", "Mean Filter"
+
+buffer_size: 10
+# the buffer size of the mean filter
+
+linear_scale: 1.0
+# the linear scale used to restrict the max linear speed
+
+angular_scale: 1.0
+# the angular scale used to restrict the max angular speed
+
+linear_acc: 1.0
+# the max linear acceleration
+
+angular_acc: 1.0
+# the max angular acceleration

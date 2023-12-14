@@ -1,0 +1,195 @@
+<?xml version="1.0" ?>
+
+<robot name="model_scwheelchair" xmlns:xacro="https://www.ros.org/wiki/xacro" >
+
+    <xacro:include filename="$(find model_scwheelchair)/urdf/base_model_scwheelchair/materials_.xacro" />
+    <xacro:include filename="$(find model_scwheelchair)/urdf/base_model_scwheelchair/macros_.xacro" />
+    <xacro:include filename="$(find model_scwheelchair)/urdf/base_model_scwheelchair/model_properties_.xacro" />
+    <xacro:include filename="$(find model_scwheelchair)/urdf/base_model_scwheelchair/model_scwheelchair_.gazebo" />
+
+    <link name="base_footprint"/>
+    <joint type="fixed" name="base_joint">
+      <origin xyz="-${baseLength/2} 0 ${wheelRadius}"  rpy="0 0 0"/>
+      <parent link="base_footprint"/>
+      <child link="base_link"/>
+    </joint>
+
+    <link name="base_link">
+        <visual>
+            <origin xyz="0 0 ${baseHeight/4}" rpy="0 0 0"/>
+            <geometry>
+                <box size="${baseLength} ${baseWidth} ${baseHeight}"/>
+            </geometry>
+            <material name="orange"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 ${baseHeight/4}" rpy="0 0 0"/>
+            <geometry>
+                <box size="${baseLength} ${baseWidth} ${baseHeight}"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 ${baseHeight/2}" rpy="0 0 0"/>
+            <mass value="${baseMass}"/>
+            <xacro:box_inertia m="${baseMass}" x="${baseLength}" y="${baseWidth}" z="${baseHeight}"/>
+        </inertial>
+    </link>
+
+    <link name="seat_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://model_scwheelchair/meshes/scat_seat.stl"  scale="0.01 0.01 0.01"/>
+            </geometry>
+            <material name="light_black"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://model_scwheelchair/meshes/scat_seat.stl"  scale="0.01 0.01 0.01"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 ${seatHeight/2}" rpy="0 0 0"/>
+            <mass value="${seatMass}"/>
+            <xacro:box_inertia m="${seatMass}" x="${baseLength}" y="${baseWidth}" z="${seatHeight}"/>
+        </inertial>
+    </link>
+
+    <joint name="seat_joint"  type="fixed">
+        <origin xyz="0.05 0 0" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="seat_link"/>
+    </joint>
+
+    <link name="caster_wheel_left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${casterWidth}" radius="${casterRadius}"/>
+            </geometry>
+            <material name="grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="${casterRadius}"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="${casterMass}"/>
+            <xacro:sphere_inertia m="${casterMass}" r="${casterRadius}"/>
+        </inertial>
+    </link>
+
+    <joint name="caster_left_joint"  type="fixed">
+        <origin xyz="${-baseLength/2} ${baseWidth/2+casterWidth/2} ${-(wheelRadius-casterRadius)}" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="caster_wheel_left"/>
+    </joint>
+
+    <link name="caster_wheel_right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${casterWidth}" radius="${casterRadius}"/>
+            </geometry>
+            <material name="grey"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="${casterRadius}"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="${casterMass}"/>
+            <xacro:sphere_inertia m="${casterMass}" r="${casterRadius}"/>
+        </inertial>
+    </link>
+
+    <joint name="caster_right_joint"  type="fixed">
+        <origin xyz="${-baseLength/2} ${-(baseWidth/2+casterWidth/2)} ${-(wheelRadius-casterRadius)}" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="caster_wheel_right"/>
+    </joint>
+
+    <link name="wheel_left">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${wheelWidth}" radius="${wheelRadius}"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${wheelWidth}" radius="${wheelRadius}"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <mass value="${wheelMass}"/>
+            <xacro:cylinder_inertia m="${wheelMass}" r="${wheelRadius}" h="${wheelWidth}"/>
+        </inertial>
+    </link>
+
+    <joint name="wheel_left_joint" type="continuous">
+        <origin xyz="0 ${baseWidth/2+wheelWidth/2} ${wheelRadius}"  rpy="0 0 0"/>
+        <parent link="base_footprint"/>
+        <child link="wheel_left"/>
+        <axis xyz="0 1 0" rpy="0 0 0"/>
+        <!-- <limit effort="0.0" velocity="0.0"/> -->
+        <limit effort="1000" velocity="1000" />
+        <dynamics damping="0.0" friction="0.05" />
+        <joint_properties damping="0.0" friction="0.0"/>
+    </joint>
+
+    <link name="wheel_right">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${wheelWidth}" radius="${wheelRadius}"/>
+            </geometry>
+            <material name="black"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <geometry>
+                <cylinder length="${wheelWidth}" radius="${wheelRadius}"/>
+            </geometry>
+        </collision>
+
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+            <mass value="${wheelMass}"/>
+            <xacro:cylinder_inertia m="${wheelMass}" r="${wheelRadius}" h="${wheelWidth}"/>
+        </inertial>
+    </link>
+
+    <joint name="wheel_right_joint" type="continuous">
+        <origin xyz="0 ${-(baseWidth/2+wheelWidth/2)} ${wheelRadius}"  rpy="0 0 0"/>
+        <parent link="base_footprint"/>
+        <child link="wheel_right"/>
+        <axis xyz="0 1 0" rpy="0 0 0"/>
+        <!-- <limit effort="0.0" velocity="0.0"/> -->
+        <limit effort="1000" velocity="1000" />
+        <dynamics damping="0.0" friction="0.05" />
+        <joint_properties damping="0.0" friction="0.0"/>
+    </joint>
+
+</robot>

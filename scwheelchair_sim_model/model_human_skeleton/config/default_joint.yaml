@@ -1,0 +1,20 @@
+zeros:
+  hip_right_joint: -1.57   # right hip
+  hip_left_joint: -1.57      # left hip
+
+  knee_right_joint: 1.57      # right knee
+  knee_left_joint: 1.57        # left knee
+
+  shoulder_right_flexion_joint: 1.62   # right shoulder flexion
+  shoulder_left_flexion_joint: 1.62   # left shoulder flexion
+
+  shoulder_right_abduction_joint: 1.07   # right shoulder abduction
+  shoulder_left_abduction_joint: 1.07   # right shoulder abduction
+
+  shoulder_right_rotation_joint: -1.57    # right shoulder rotation
+  shoulder_left_rotation_joint: -1.57   # right shoulder abduction
+
+  elbow_right_joint: 0.5  # right elbow
+  elbow_left_joint: 0.5      # left elbow
+
+  chest_head_joint: 1.0   # head

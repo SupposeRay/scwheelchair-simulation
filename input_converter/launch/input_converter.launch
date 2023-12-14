@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="input_converter" type="input_converter" name="input_converter" output="screen">
+    <rosparam file="$(find input_converter)/config/input_converter_config.yaml" command="load"/>
+    <!--remap from="/trajectory_generator/goal" to="/joystick_goal/goal" /-->
+    <remap from="/input_converter/cmd_vel" to="/cmd_vel" />
+    <!-- <remap from="/input_converter/cmd_vel" to="/joy_vel" /> -->
+    <!-- <remap from="/arduino/joystick" to="/joy_vel" />  -->
+  </node>
+
+</launch>

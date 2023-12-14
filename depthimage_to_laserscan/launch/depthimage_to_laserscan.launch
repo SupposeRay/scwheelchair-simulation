@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" name="depthimage_to_laserscan" output="screen">
+    <!-- <rosparam file="$(find shared_dwa)/config/shared_dwa_config.yaml" command="load"/> -->
+    <!--remap from="/trajectory_generator/goal" to="/joystick_goal/goal" /-->
+    <remap from="/image" to="/camera/depth/color/image_raw" />
+    <remap from="/scan" to="/depthimage_to_laserscan/scan" /> 
+  </node>
+
+</launch>

@@ -84,12 +84,28 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: false
+      Visual Enabled: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /visualization/path
       Name: Marker
       Namespaces:
-        visualization: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -120,7 +136,7 @@ Visualization Manager:
       Marker Topic: /visualization/final_path
       Name: Marker
       Namespaces:
-        visualization: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -128,21 +144,21 @@ Visualization Manager:
       Marker Topic: /visualization/user_path
       Name: Marker
       Namespaces:
-        visualization: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
       Enabled: true
-      Length: 0.5
+      Length: 1
       Name: Axes
       Radius: 0.100000001
-      Reference Frame: <Fixed Frame>
+      Reference Frame: base_link
       Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: base_footprint
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -163,16 +179,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.1144838
+      Distance: 15.1205597
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.216754928
-        Y: 0.118502028
-        Z: -0.117026314
+        X: 2.22681642
+        Y: 0.690275788
+        Z: -0.116481893
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false

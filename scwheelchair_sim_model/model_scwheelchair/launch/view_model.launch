@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <arg name="xacro_file"  default="model_scwheelchair.xacro"/>
+    <arg name="rviz_file"   default="view"/>
+    <arg name="rviz"        default="true"/>
+
+    <!-- robot description -->
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find model_scwheelchair)/urdf/$(arg xacro_file)" />
+    
+    <!-- joint state -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+        <param name="use_gui" value="False"/>
+    </node>
+
+    <!-- robot state -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+    <!-- rviz   -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find model_scwheelchair)/rviz/$(arg rviz_file).rviz" if="$(arg rviz)"/>
+
+</launch>

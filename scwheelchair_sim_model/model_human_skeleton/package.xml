@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>model_human_skeleton</name>
+  <version>0.0.0</version>
+  <description>The model_human_skeleton package</description>
+
+  <maintainer email="kuanyuee.tan@ntu.edu.sg">KuanYuee_RRIS</maintainer>
+  <author email="kuanyuee.tan@ntu.edu.sg">KuanYuee_RRIS</author>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>

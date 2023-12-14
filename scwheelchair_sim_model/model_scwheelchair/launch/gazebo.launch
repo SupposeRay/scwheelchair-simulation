@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <arg name="model_name"  default="model_scwheelchair"/>
+    <arg name="xacro_file"  default="model_scwheelchair.xacro"/>
+    <arg name="world_file"  default=""/>
+
+    <arg name="x"       default="0"/>
+    <arg name="y"       default="0"/>
+    <arg name="z"       default="0"/>
+    <arg name="roll"    default="0"/>
+    <arg name="pitch"   default="0"/>
+    <arg name="yaw"     default="0"/>
+
+    <arg name="rviz"        default="true"/>
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_file)"/>
+    </include>
+
+	<include file="$(find model_scwheelchair)/launch/view_model.launch">
+        <arg name="xacro_file"  value="$(arg xacro_file)"/>
+        <arg name="rviz"        value="$(arg rviz)"/>
+    </include>
+
+    <node name="$(arg model_name)_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-urdf -param robot_description -model $(arg model_name) 
+                -x $(arg x) -y $(arg y) -z $(arg z)
+                -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)" />
+
+</launch>

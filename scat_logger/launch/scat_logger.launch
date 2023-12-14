@@ -1,0 +1,5 @@
+<launch>
+    <node name="scat_logger" type="scat_logger_node" pkg="scat_logger" output="screen">
+        <rosparam file="$(find scat_logger)/config/scat_logger.yaml" command="load"/>
+    </node>
+</launch>

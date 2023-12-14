@@ -1,0 +1,707 @@
+<?xml version="1.0"?>
+<robot name="human" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="joint_pose_file"       default="default_pose.xacro"/>
+  <xacro:property name="joint_pose_file"  value="$(arg joint_pose_file)"/>
+  <xacro:include filename="$(find model_human_skeleton)/urdf/${joint_pose_file}"/>
+
+  <xacro:arg name="fixed_joint"         default="true"/>
+  <xacro:property name="fixed_joint"    value="$(arg fixed_joint)"/>
+
+  <xacro:arg name="gazebo_static"       default="true"/>
+  <xacro:property name="gazebo_static"  value="$(arg gazebo_static)"/>
+
+  <xacro:property name="model_mass" value="10"/>
+  <xacro:property name="head_radius" value="0.125"/>
+  <xacro:property name="body_trunk_height" value="0.4" />
+  <xacro:property name="body_trunk_width" value="0.25" />
+  <xacro:property name="body_trunk_depth" value="0.1"/>
+
+  <xacro:property name="thight_length" value="0.35"/>
+  <xacro:property name="calf_length" value="0.35"/>
+  <xacro:property name="leg_radius" value="0.05"/>
+
+  <xacro:property name="foot_height" value="0.05"/>
+  <xacro:property name="foot_length" value="0.23"/>
+
+  <xacro:property name="hand_diameter" value="0.15"/>
+  <xacro:property name="arm_diameter" value="0.1"/>
+  <xacro:property name="arm_length" value="0.2"/>
+  <xacro:property name="forearm_length" value="0.2"/>
+
+  <xacro:property name="deg_to_rad" value="0.01745329251994329577"/>
+
+  <xacro:macro name="unit_inertia" params="mass:=1">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass}" ixy="0" ixz="0" iyy="${mass}" iyz="0" izz="${mass}"/>
+    </inertial>
+  </xacro:macro>
+  
+  <xacro:if value="${gazebo_static}">
+    <gazebo>
+      <static>true</static>
+    </gazebo>
+  </xacro:if>
+
+  <link name="human_base_link"/>
+
+  <link name="body_link">
+    <visual>
+      <geometry>
+        <box size="${body_trunk_height} ${body_trunk_width} ${body_trunk_depth}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <box size="${body_trunk_height} ${body_trunk_width} ${body_trunk_depth}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="base_body_joint" type="fixed">
+    <origin xyz="-0 0 ${body_trunk_height/2.0}" rpy="0 -1.57 0"/>
+    <child link="body_link"/>
+    <parent link="human_base_link"/>
+  </joint>
+
+  <link name="bodyright_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_height}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_height}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="body_bodyright_joint" type="fixed">
+      <origin xyz="0 -${body_trunk_width/2} 0" rpy="0 -1.57 0"/>
+    <child link="bodyright_link"/>
+    <parent link="body_link"/>
+  </joint>
+
+  <link name="bodyleft_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_height}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_height}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="body_bodyleft_joint" type="fixed">
+      <origin xyz="0 ${body_trunk_width/2} 0" rpy="0 -1.57 0"/>
+    <child link="bodyleft_link"/>
+    <parent link="body_link"/>
+  </joint>
+
+  <!-- thight right -->
+  <link name="legright1_link">
+    <visual>
+      <origin xyz="0 0 ${thight_length/2}"/>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${thight_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${thight_length/2}"/>
+      <geometry>
+       <cylinder radius="${leg_radius}" length="${thight_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="hip_right_joint" type="revolute">
+      <origin xyz="0 ${leg_radius-body_trunk_depth/2} ${body_trunk_height/2-leg_radius}" rpy="0 ${hip_r_joint_angle} 0"/>
+      <child link="legright1_link"/>
+      <parent link="bodyright_link"/>
+      <axis xyz="0.0 1.0 0.0"/>
+      <limit lower="-1.57" upper="1.57" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="hip_right_joint" type="fixed">
+      <origin xyz="0 ${leg_radius-body_trunk_depth/2} ${body_trunk_height/2-leg_radius}" rpy="0 ${hip_r_joint_angle} 0"/>
+      <child link="legright1_link"/>
+      <parent link="bodyright_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- thight left -->
+  <link name="legleft1_link">
+    <visual>
+      <origin xyz="0 0 ${thight_length/2}"/>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${thight_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${thight_length/2}"/>
+      <geometry>
+       <cylinder radius="${leg_radius}" length="${thight_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="hip_left_joint" type="revolute">
+      <origin xyz="0 ${-(leg_radius-body_trunk_depth/2)} ${body_trunk_height/2-leg_radius}" rpy="0 ${hip_l_joint_angle} 0"/>
+      <child link="legleft1_link"/>
+      <parent link="bodyleft_link"/>
+      <axis xyz="0.0 1.0 0.0"/>
+      <limit lower="-1.57" upper="1.57" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="hip_left_joint" type="fixed">
+      <origin xyz="0 ${-(leg_radius-body_trunk_depth/2)} ${body_trunk_height/2-leg_radius}" rpy="0 ${hip_l_joint_angle} 0"/>
+      <child link="legleft1_link"/>
+      <parent link="bodyleft_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- knee right -->
+  <link name="legright2_link">
+    <visual>
+      <geometry>
+        <sphere radius="${leg_radius}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${leg_radius}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="knee_right_joint" type="revolute">
+      <origin xyz="0 0 ${thight_length}" rpy="0 ${knee_r_joint_angle-1.57} 0"/>
+      <child link="legright2_link"/>
+      <parent link="legright1_link"/>
+      <axis xyz="0.0 1.0 0.0"/>
+      <limit lower="0" upper="${160 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="knee_right_joint" type="fixed">
+      <origin xyz="0 0 ${thight_length}" rpy="0 ${knee_r_joint_angle-1.57} 0"/>
+      <child link="legright2_link"/>
+      <parent link="legright1_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- knee left -->
+  <link name="legleft2_link">
+    <visual>
+      <geometry>
+        <sphere radius="${leg_radius}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${leg_radius}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="knee_left_joint" type="revolute">
+      <origin xyz="0 0 ${thight_length}" rpy="0 ${knee_l_joint_angle-1.57} 0"/>
+      <child link="legleft2_link"/>
+      <parent link="legleft1_link"/>
+      <axis xyz="0.0 1.0 0.0"/>
+      <limit lower="0" upper="${160 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="knee_left_joint" type="fixed">
+      <origin xyz="0 0 ${thight_length}" rpy="0 ${knee_l_joint_angle-1.57} 0"/>
+      <child link="legleft2_link"/>
+      <parent link="legleft1_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- calf right -->
+  <link name="legright3_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${calf_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${calf_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="calf_right_joint" type="fixed">
+    <origin xyz="${calf_length/2} 0 0" rpy="0 -1.57 0"/>
+    <child link="legright3_link"/>
+    <parent link="legright2_link"/>
+  </joint>
+
+  <!-- calf left -->
+  <link name="legleft3_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${calf_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="${leg_radius}" length="${calf_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="calf_left_joint" type="fixed">
+    <origin xyz="${calf_length/2} 0 0" rpy="0 -1.57 0"/>
+    <child link="legleft3_link"/>
+    <parent link="legleft2_link"/>
+  </joint>
+
+  <!-- foot right -->
+  <link name="footright_link">
+    <visual>
+      <origin xyz="${foot_length/2-leg_radius} 0 0"/>
+      <geometry>
+        <box size="${foot_length} ${2*leg_radius} ${foot_height}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="${foot_length/2-leg_radius} 0 0"/>
+      <geometry>
+        <box size="${foot_length} ${2*leg_radius} ${foot_height}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="ankle_right_joint" type="fixed">
+    <origin xyz="0 0 -${calf_length*0.5}" rpy="0 0 0"/>
+    <child link="footright_link"/>
+    <parent link="legright3_link"/>
+  </joint>
+
+  <!-- foot left -->
+  <link name="footleft_link">
+    <visual>
+      <origin xyz="${foot_length/2-leg_radius} 0 0"/>
+      <geometry>
+        <box size="${foot_length} ${2*leg_radius} ${foot_height}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="${foot_length/2-leg_radius} 0 0"/>
+      <geometry>
+        <box size="${foot_length} ${2*leg_radius} ${foot_height}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="ankle_left_joint" type="fixed">
+    <origin xyz="0 0 -${calf_length*0.5}" rpy="0 0 0"/>
+    <child link="footleft_link"/>
+    <parent link="legleft3_link"/>
+  </joint>
+
+  <!-- chest -->
+  <link name="chest_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_width}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${body_trunk_depth/2}" length="${body_trunk_width}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="body_chest_joint" type="fixed">
+    <origin xyz="${body_trunk_height/2} 0 0" rpy="-1.57 0 0"/>
+    <child link="chest_link"/>
+    <parent link="body_link"/>
+  </joint>
+
+  <!-- shoulder right -->
+  <link name="shoulderright_link">
+    <visual>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_right_flexion_joint" type="revolute">
+      <origin xyz="0 0 ${-body_trunk_width/2}" rpy="${shoulder_r_flexion_angle} 0 0"/>
+      <child link="shoulderright_link"/>
+      <parent link="chest_link"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="${-90 * deg_to_rad}" upper="${135 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_right_flexion_joint" type="fixed">
+      <origin xyz="0 0 ${-body_trunk_width/2}" rpy="${shoulder_r_flexion_angle} 0 0"/>
+      <child link="shoulderright_link"/>
+      <parent link="chest_link"/>
+    </joint>
+  </xacro:if>
+
+  <link name="shoulderright_link2">
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_right_abduction_joint" type="revolute">
+      <origin xyz="0 0 0" rpy="0 ${shoulder_r_abduction_angle} 0"/>
+      <child link="shoulderright_link2"/>
+      <parent link="shoulderright_link"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="${-90 * deg_to_rad}" upper="${90 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_right_abduction_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 ${shoulder_r_abduction_angle} 0"/>
+      <child link="shoulderright_link2"/>
+      <parent link="shoulderright_link"/>
+    </joint>
+  </xacro:if>
+
+  <link name="shoulderright_link3">
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_right_rotation_joint" type="revolute">
+      <origin xyz="0 0 0" rpy="0 0 ${shoulder_r_rotation_angle}"/>
+      <child link="shoulderright_link3"/>
+      <parent link="shoulderright_link2"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="${-180 * deg_to_rad}" upper="${90 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_right_rotation_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 ${shoulder_r_rotation_angle}"/>
+      <child link="shoulderright_link3"/>
+      <parent link="shoulderright_link2"/>
+    </joint>
+  </xacro:if>
+
+  <!-- shoulder left -->
+  <link name="shoulderleft_link">
+    <visual>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_left_flexion_joint" type="revolute">
+      <origin xyz="0 0 ${body_trunk_width/2}" rpy="${shoulder_l_flexion_angle} 0 ${180*deg_to_rad}"/>
+      <child link="shoulderleft_link"/>
+      <parent link="chest_link"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="${-90 * deg_to_rad}" upper="${135 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_left_flexion_joint" type="fixed">
+      <origin xyz="0 0 ${body_trunk_width/2}" rpy="${shoulder_l_flexion_angle} 0 ${180*deg_to_rad}"/>
+      <child link="shoulderleft_link"/>
+      <parent link="chest_link"/>
+    </joint>
+  </xacro:if>
+
+  <link name="shoulderleft_link2">
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_left_abduction_joint" type="revolute">
+      <origin xyz="0 0 0" rpy="0 ${shoulder_l_abduction_angle} 0"/>
+      <child link="shoulderleft_link2"/>
+      <parent link="shoulderleft_link"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="${-90 * deg_to_rad}" upper="${90 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_left_abduction_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 ${shoulder_l_abduction_angle} 0"/>
+      <child link="shoulderleft_link2"/>
+      <parent link="shoulderleft_link"/>
+    </joint>
+  </xacro:if>
+
+  <link name="shoulderleft_link3">
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="shoulder_left_rotation_joint" type="revolute">
+      <origin xyz="0 0 0" rpy="0 0 ${shoulder_l_rotation_angle}"/>
+      <child link="shoulderleft_link3"/>
+      <parent link="shoulderleft_link2"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="${-180 * deg_to_rad}" upper="${90 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="shoulder_left_rotation_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 ${shoulder_l_rotation_angle}"/>
+      <child link="shoulderleft_link3"/>
+      <parent link="shoulderleft_link2"/>
+    </joint>
+  </xacro:if>
+
+  <!-- arm right -->
+  <link name="armright1_link">
+    <visual>
+      <origin xyz="0 0 ${-arm_length/2}"/>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${arm_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${-arm_length/2}"/>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${arm_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="arm_right_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <child link="armright1_link"/>
+    <parent link="shoulderright_link3"/>
+  </joint>
+
+  <!-- arm left -->
+  <link name="armleft1_link">
+    <visual>
+      <origin xyz="0 0 ${-arm_length/2}"/>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${arm_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${-arm_length/2}"/>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${arm_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="arm_left_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 ${180*deg_to_rad} ${180*deg_to_rad}"/>
+    <child link="armleft1_link"/>
+    <parent link="shoulderleft_link3"/>
+  </joint>
+
+  <!-- elbow right -->
+  <link name="armright2_link">
+    <visual>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="elbow_right_joint" type="revolute">
+      <origin xyz="0 0 ${-arm_length}" rpy="${elbow_r_angle} 0 0"/>
+      <child link="armright2_link"/>
+      <parent link="armright1_link"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="0" upper="${160 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="elbow_right_joint" type="fixed">
+      <origin xyz="0 0 ${-arm_length}" rpy="${elbow_r_angle} 0 0"/>
+      <child link="armright2_link"/>
+      <parent link="armright1_link"/>
+    </joint>
+  </xacro:if>
+  
+
+  <!-- elbow left -->
+  <link name="armleft2_link">
+    <visual>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${arm_diameter/2}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="elbow_left_joint" type="revolute">
+      <origin xyz="0 0 ${-arm_length}" rpy="${elbow_l_angle} 0 0"/>
+      <child link="armleft2_link"/>
+      <parent link="armleft1_link"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="0" upper="${160 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="elbow_left_joint" type="fixed">
+      <origin xyz="0 0 ${-arm_length}" rpy="${elbow_l_angle} 0 0"/>
+      <child link="armleft2_link"/>
+      <parent link="armleft1_link"/>
+    </joint>
+  </xacro:if>
+
+  <!-- forearm right -->
+  <link name="armright3_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${forearm_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${forearm_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="forearm_right_joint" type="fixed">
+    <origin xyz="0 0 ${-forearm_length/2}" rpy="0 0 0"/>
+    <child link="armright3_link"/>
+    <parent link="armright2_link"/>
+  </joint>
+
+  <!-- forearm left -->
+  <link name="armleft3_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${forearm_length}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="${arm_diameter/2}" length="${forearm_length}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="forearm_left_joint" type="fixed">
+    <origin xyz="0 0 ${-forearm_length/2}" rpy="0 0 0"/>
+    <child link="armleft3_link"/>
+    <parent link="armleft2_link"/>
+  </joint>
+
+  <!-- hand right -->
+  <link name="handright_link">
+    <visual>
+      <geometry>
+        <sphere radius="${hand_diameter/2}"/>
+        <!-- <box size="0.05 0.10 0.15"/> -->
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${hand_diameter/2}"/>
+        <!-- <box size="0.05 0.10 0.15"/> -->
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="wrist_right_joint" type="fixed">
+      <origin xyz="0 0 ${-forearm_length/2}" rpy="0 0 0"/>
+    <child link="handright_link"/>
+    <parent link="armright3_link"/>
+  </joint>
+
+  <!-- hand left -->
+  <link name="handleft_link">
+    <visual>
+      <geometry>
+        <sphere radius="${hand_diameter/2}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <sphere radius="${hand_diameter/2}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <joint name="wrist_left_joint" type="fixed">
+      <origin xyz="0 0 ${-forearm_length/2}" rpy="0 0 0"/>
+    <child link="handleft_link"/>
+    <parent link="armleft3_link"/>
+  </joint>
+
+  <!-- head -->
+  <link name="head_link">
+    <visual>
+      <geometry>
+        <sphere radius="${head_radius}"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <sphere radius="${head_radius}"/>
+      </geometry>
+    </collision>
+    <xacro:unit_inertia mass="1"/>
+  </link>
+  <xacro:unless value="${fixed_joint}">
+    <joint name="chest_head_joint" type="revolute">
+      <origin xyz="${head_radius+body_trunk_depth/2} 0 0" rpy="0 0 0"/>
+      <child link="head_link"/>
+      <parent link="chest_link"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="${-90 * deg_to_rad}" upper="${90 * deg_to_rad}" effort="1000.0" velocity="0.5"/>
+    </joint>
+  </xacro:unless>
+  <xacro:if value="${fixed_joint}">
+    <joint name="chest_head_joint" type="fixed">
+      <origin xyz="${head_radius+body_trunk_depth/2} 0 0" rpy="0 0 0"/>
+      <child link="head_link"/>
+      <parent link="chest_link"/>
+    </joint>
+  </xacro:if>
+
+</robot>

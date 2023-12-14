@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="https://www.ros.org/wiki/xacro">
+
+   <xacro:include filename="$(find sensors)/hc_sr04/xacro/HC_SR04.xacro"/>
+   <xacro:include filename="$(find sensors)/realsense_d435/xacro/RealSense_D435.xacro"/>
+   <xacro:include filename="$(find sensors)/rplidar_a3/xacro/RPLIDAR_A3.xacro"/>
+   <xacro:include filename="$(find sensors)/velodyne_vlp16/xacro/VLP-16.urdf.xacro"/>
+
+   <!-- ultrasonic hc-sr04 -->
+   <xacro:macro name="sensor_ultrasonic" params="name parent x y z roll pitch yaw topic_name visualize:=true">
+      <joint name="${name}_joint" type="fixed">
+         <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+         <parent link="${parent}"/>
+         <child link="${name}_base_link"/>
+      </joint>
+      <xacro:HC-SR04 name="${name}" topic_name="${topic_name}" visualize="${visualize}"/>
+   </xacro:macro>
+
+   <!-- realsense d435 -->
+   <xacro:macro name="sensor_rsD435" params="prefix parent x y z roll pitch yaw visualize:=1">
+      <joint name="${prefix}_joint" type="fixed">
+         <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}" />
+         <parent link="${parent}"/>
+         <child link="${prefix}_base_link"/>
+      </joint>
+      <xacro:REALSENSE-D435 name="${prefix}" topics_ns="${prefix}" visualize="${visualize}"/>
+   </xacro:macro>
+
+   <!-- rplidar a3 -->
+   <xacro:macro name="sensor_rplidarA3" params="name parent x y z roll pitch yaw topic_name min_angle:=-3.14159265 max_angle:=3.14159265 visualize:=true gpu:=false">
+      <joint name="${name}_joint" type="fixed">
+         <axis xyz="0 1 0" />
+         <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}" />
+         <parent link="${parent}"/>
+         <child link="${name}_base_link"/>
+      </joint>
+      <xacro:RPLIDAR-A3 name="${name}" topic_name="${topic_name}" min_angle="${min_angle}" max_angle="${max_angle}" visualize="${visualize}" gpu="${gpu}"/>
+   </xacro:macro>
+
+   <!-- velodyne vlp16 -->
+   <xacro:macro name="sensor_velodyneVLP16" params="name:=velodyne parent x y z roll pitch yaw topic_name:=velodyne_points rate:=10 samples:=440">
+      <xacro:VLP-16 parent="${parent}" name="${name}" topic="${topic_name}" hz="${rate}" samples="${samples}">
+         <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}" />
+      </xacro:VLP-16>
+   </xacro:macro>
+
+</robot>
+

@@ -1,0 +1,9 @@
+cmd_vel_topic: "/cmd_vel"
+joystick_topic: "/arduino/joystick"
+odom_topic: "/odom"
+weight_topic: "/shared_dwa/user_weight"
+path_id_topic: "/preferred_path_ind"
+base_frame: "base_link"
+map_frame: "map"
+frequency: 100
+use_sim_time: true

@@ -19,7 +19,7 @@
     </include>
 
     <!-- load robot description -->
-    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find mbot_description)/models/mbot_xacro/mbot_with_laser_gazebo.xacro'" /> 
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find mbot_description)/models/mbot_xacro/mbox_with_laser_camera_gazebo.xacro'" /> 
 
     <!-- run joint_state_publisher node and publish robot joint state info  -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node> 

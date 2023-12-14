@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from geometry_msgs.msg import Twist
-import sys, select, termios, tty
+from geometry_msgs.msg import Point
+import sys, select, termios, tty, math
 
 msg = """
 Control mbot!
@@ -31,6 +31,7 @@ moveBindings = {
         ',':(-1,0),
         '.':(-1,1),
         'm':(-1,-1),
+        'y':(1, 1.5),
            }
 
 speedBindings={
@@ -53,8 +54,8 @@ def getKey():
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
     return key
 
-speed = 0.5
-turn = 1.5
+speed = 1.0
+turn = 1.0
 
 def vels(speed,turn):
     return "currently:\tspeed %s\tturn %s " % (speed,turn)
@@ -63,21 +64,21 @@ if __name__=="__main__":
     settings = termios.tcgetattr(sys.stdin)
     
     rospy.init_node('control_keyboard')
-    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
+    pub = rospy.Publisher('/keyboard', Point, queue_size=5)
 
     x = 0
     th = 0
     status = 0
     count = 0
-    acc = 1.0
-    dec = 1.0
+    acc = 0.2
+    dec = 0.2
     target_speed = 0
     target_turn = 0
     control_speed = 0
     control_turn = 0
     try:
-        print msg
-        print vels(speed,turn)
+        print(msg)
+        print(vels(speed,turn))
         while(1):
             key = getKey()
 
@@ -91,9 +92,9 @@ if __name__=="__main__":
                 turn = turn * speedBindings[key][1]    
                 count = 0
 
-                print vels(speed,turn)
+                print(vels(speed,turn))
                 if (status == 14):
-                    print msg
+                    print(msg)
                 status = (status + 1) % 15
 
             elif key == ' ' or key == 'k' :
@@ -129,22 +130,24 @@ if __name__=="__main__":
                 control_turn = target_turn
 
 
-            twist = Twist()
-            twist.linear.x = control_speed; 
-            twist.linear.y = 0; 
-            twist.linear.z = 0
-            twist.angular.x = 0; 
-            twist.angular.y = 0; 
-            twist.angular.z = control_turn
-            pub.publish(twist)
+            Output = Point()
+            length = control_speed * control_speed + control_turn * control_turn
+            length = math.sqrt(length)
+            if length == 0:
+                Output.x = control_speed
+                Output.y = control_turn
+            else:
+                Output.x = control_speed/length
+                Output.y = control_turn/length
+            Output.z = 0
+            pub.publish(Output)
 
     except:
-        print e
+        print ("Error")
 
     finally:
-        twist = Twist()
-        twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
-        twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = 0
-        pub.publish(twist)
+        Output = Point()
+        Output.x = 0; Output.y = 0; Output.z = 0
+        pub.publish(Output)
 
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)

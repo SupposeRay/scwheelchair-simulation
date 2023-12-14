@@ -1,56 +1,42 @@
 
-publish_interval: 0.2
+publish_interval: 0.01
 # the interval of publishing results    unit: s
 
+algorithm_interval: 0.3
+# the interval of computing a cmd_vel    unit: s
 
-sample_interval: 0.5
-# the interval between 2 consective samples   unit: s
+sample_distance: 0.1
+# the distance between 2 consective samples   unit: m
 
 
-sample_time: 5
+sample_time: 3
 # the prediction horizon, namely the total time to predict in the future    unit: s
 
 
-v_sample: 10
+v_sample: 30
 # number of samples along linear velocity axis in each dynamic window
 
 
-w_sample: 10
+w_sample: 30
 # number of samples along angular velocity axis in each dynamic window
 
+v_acclrt: 1.0
+# the absolute linear accleration, must be a positive number   unit: m/s^2  0.8
 
-v_acclrt: 0.2
-# the linear accleration, must be a positive number   unit: m/s^2
-
-v_dclrt: -0.2
-# the linear decleration, must be a negative number   unit: m/s^2
-
-w_acclrt: 0.523
-# the angular accleration, must be a positive number   unit: rad/s^2
-
-w_dclrt: -0.523
-# the angular decleration, must be a negative number   unit: rad/s^2
-
+w_acclrt: 1.0
+# the absolute angular accleration, must be a positive number   unit: rad/s^2 0.523
 
 v_max_robot: 1.0
 # the physical maximum forward velocity of the robot, must be a positive number    unit: m/s
 
-
-v_min_robot: -1.0
-# the physical maximum backward velocity of the robot, must be a negative number    unit: m/s
-
-
 w_max_robot: 1.0
 # the physical maximum angular velocity of the robot, must be a positive number    unit: rad/s
-
 
 fixed_frame_id: "map"
 # the world frame id
 
-
 base_frame_id: "base_footprint"
 # the local frame id
-
 
 footprint_mode: "radius"
 # the footprint mode for collision check
@@ -58,11 +44,56 @@ footprint_mode: "radius"
 # "radius": use an envelope circle to represent the footprint of the robot
 # "rectangle": use 4 corner points to represent the footprint of the robot
 
-
 r_collision: 0.5
+# r_collision: 0.45
 # when choosing "radius" footprint mode, this stands for the radius of the robot
 
+weight_goal: 0.2
+weight_cmd: 0.8
+# weight_goal: 0.5
+# weight_cmd: 0.5
+# the weightings of goal guidance and user command in goal guidance mode, used for shared control
+# the values must be non-negative and the sum must be 1
+# when enable_dynamic_weight is true, the weight_cmd is the uppper bound of weight assigned to cmd
 
-rectangle_point: [0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5]
+rectangle_point: [0.4, 0.5, 0.4, -0.5, -0.9, -0.5, -0.9, 0.5]
 # when choosing "rectangle" footprint mode, this stands for the coordinates of 4 corner points of the robot
-# the sequence of this list is x1 y1 x2 y2 x3 y3 x4 y4 with a counter-clockwise
+# the sequence of this list is x1 y1 x2 y2 x3 y3 x4 y4 with a clockwise order in ROS axis frame
+
+weight_heading: 0.7
+weight_velocity: 0.3
+# the weightings of heading and velocity in DWA cost function
+# the values must be non-negative and the sum must be 1
+
+guidance_mode: "goal"
+# the guidance mode used to find the optimal control
+# options: "goal", "disable"
+# "goal": use a local goal to guide the robot and share the control autonomy with the user
+# "disable": the optimal control will be a safe control that is closest to the joystick input
+
+weight_distance: 0.9
+# the weighting allocated to distance when calculating the closeness to the goal
+# range: [0, 1]
+# the rest, namely 1 - weight_distance, will be allocated to the alignment with the orientation of the goal
+
+weight_cmd_lb: 0.15
+# when enable_dynamic_weight is true, the weight_cmd_lb is the lower bound of weight assigned to cmd
+
+enable_dynamic_weight: true
+# whether to enable a dynamic weight assignment to goal and user command based on how narrow the space is
+
+gamma_goal: 3.0
+gamma_cmd: 1.0
+# the gamma transformation factors to scale the cost windows for goal and command
+
+tf_buffer_timeout: 0.5
+# how long to block before failing for tf transformation
+
+enable_visualization: true
+# enable rviz visualization
+
+dynamic_window_time_interval: 0.3
+# controls the size of dynamic window, along with acceleration limits set above. Unit   [s]
+
+min_clearance_threshold: 0.0
+# sets the minimum clearance required for a velocity pair to be valid

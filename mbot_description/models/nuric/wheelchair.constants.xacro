@@ -15,7 +15,7 @@
    <xacro:macro name="caster_wheel_inertia" >
 
       <inertial>
-        <mass value="0.07" />
+        <mass value="0.010" />
         <origin xyz="0 0 0" />
         <inertia  ixx="0.001" ixy="0.0" ixz="0.0"
                   iyy="0.001" iyz="0.0" izz="0.001" />
@@ -26,7 +26,7 @@
    <xacro:macro name="caster_hub_inertia" params="lr">
 
       <inertial>
-        <mass value="0.015" />
+        <mass value="1.815" />
         <origin xyz="${lr*-0.043126} 0.030993 0.053064" />
         <inertia  ixx="0.001" ixy="0.0" ixz="0.0"
                   iyy="0.001" iyz="0.0" izz="0.001" />
@@ -37,7 +37,7 @@
    <xacro:macro name="wheelchair_base_inertia" >
 
       <inertial>
-        <mass value="5.0" />
+        <mass value="10.0" />
         <origin xyz="-0.15 0.000000 0.1" />
         <inertia  ixx="0.011469" ixy="0.0" ixz="0.005697"
                   iyy="0.015320" iyz="0.0" izz="0.008542" />

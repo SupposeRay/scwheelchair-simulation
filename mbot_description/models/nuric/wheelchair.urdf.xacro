@@ -6,7 +6,7 @@
        xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
        xmlns:xacro="http://www.ros.org/wiki/xacro" >
 
-  <xacro:include filename="$(find mbot_description)/urdf/xacro/nuric/base.urdf.xacro" />
+  <xacro:include filename="$(find mbot_description)/models/nuric/base.urdf.xacro" />
 
   <xacro:wheelchair_base />
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+
+<robot name="model_scwheelchair" xmlns:xacro="https://www.ros.org/wiki/xacro">
+
+   <xacro:include filename="$(find model_scwheelchair)/urdf/base_model_scwheelchair/model_scwheelchair_.xacro"/>
+   <xacro:include filename="$(find sensors)/sensor_macro.xacro"/>
+
+</robot>

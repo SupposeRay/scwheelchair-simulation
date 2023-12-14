@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  
+  <xacro:macro name="gazebo_hcsr04" params="name reference_link topic_name frame_name sample sample_resolution fov min_angle max_angle min_range max_range range_resolution visualize rate" >
+
+    <gazebo reference="${reference_link}">        
+      <sensor type="ray" name="sensor_${name}">
+        <pose>0 0 0 0 0 0</pose>
+        <visualize>${visualize}</visualize>
+        <update_rate>${rate}</update_rate>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>${sample}</samples>
+              <resolution>${sample_resolution}</resolution> 
+              <min_angle>${min_angle}</min_angle>
+              <max_angle>${max_angle}</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>${sample}</samples>
+              <resolution>${sample_resolution}</resolution> 
+              <min_angle>${min_angle}</min_angle>
+              <max_angle>${max_angle}</max_angle> 
+            </vertical>
+          </scan>
+          <range>
+            <min>${min_range}</min>
+            <max>${max_range}</max>
+            <resolution>${range_resolution}</resolution>
+          </range>
+        </ray>
+
+        <plugin filename="libgazebo_ros_range.so" name="gazebo_ros_range">
+          <gaussianNoise>0.005</gaussianNoise>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>${rate}</updateRate>
+          <topicName>${topic_name}</topicName>
+          <frameName>${frame_name}</frameName>
+          <radiation>ultrasound</radiation>
+          <fov>${fov}</fov>
+        </plugin>
+      </sensor>  
+    </gazebo>
+
+  </xacro:macro>
+</robot>

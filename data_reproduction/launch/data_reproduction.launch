@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node pkg="data_reproduction" type="data_reproduction" name="data_reproduction" output="screen">
+    <rosparam file="$(find data_reproduction)/config/data_reproduction_config.yaml" command="load"/>
+    <remap from="/cmd_vel" to="/dummy/cmd_vel" /> 
+  </node>
+
+</launch>

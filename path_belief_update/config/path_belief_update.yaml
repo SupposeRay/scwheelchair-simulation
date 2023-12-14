@@ -1,0 +1,44 @@
+noaction_update_interval: 0.1
+# the interval of updating belief with no user action    [s]
+
+action_update_interval: 0.5
+# the interval of updating belief with user action     [s]
+
+discount_factor: 3.0
+# the discount factor for state-action value
+
+angle_threshold: 90
+# the angle threshold for computing cost function    [degree]
+
+angle_const_cost: 1
+# the constant value added to the rotation cost function
+
+path_frame_id: "map"
+# the path frame id
+
+odom_frame_id: "odom"
+# the odometry frame id
+
+tf_buffer_timeout: 0.5
+# how long to block before failing for tf transformation
+
+temp_softmax: 1.0
+# the multiplier to adjust the rate of doing softmax
+
+rate_factor: 0.3
+# the rate of updating probability distribution
+
+upper_bound: 0.9
+lower_bound: 0.1
+# the thresholds for clipping the probability
+
+waypoint_increment: 0.5
+# the increment added to the distance to generate the next waypoint     [m]
+
+input_datatype: "point"
+# the user input datatype
+# options: "point", "twist"
+
+x_max: 1.0
+y_max: 1.0
+# the max values of x and y inputs to do the normalization

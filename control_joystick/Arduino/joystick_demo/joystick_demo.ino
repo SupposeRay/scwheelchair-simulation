@@ -1,24 +1,26 @@
+
 #include <ros.h>
 //#include <sensor_msgs/Joy.h>
 //#include <detect_box/angle.h>
-#include <std_msgs/Float32MultiArray.h>
-
+//#include <std_msgs/Float32MultiArray.h>
+#include <geometry_msgs/Point.h>
 ros::NodeHandle nh;
 
 //sensor_msgs::Joy joy_msg;
-//detect_box::angle joy_msg;
-std_msgs::Float32MultiArray joy_msg;
-ros::Publisher joy_data("/joy_data/remote", &joy_msg);
+//detect_box::angle joy_msgo ;
+//std_msgs::Float32MultiArray joy_msg;
+geometry_msgs::Point joy_msg;
+ros::Publisher joy_data("/arduino/joystick", &joy_msg);
 
-#define joyX A1
-#define joyY A0
+#define joyX A0
+#define joyY A1
 
 void setup() {
-  Serial.begin(9600);
+ Serial.begin(57600);
   nh.initNode();
   nh.advertise(joy_data);
 }
- 
+
 void loop() {
   float xValue = analogRead(joyX);
   float yValue = analogRead(joyY);
@@ -28,30 +30,102 @@ void loop() {
 
   //joy_msg.angle_Start = xValue;
   //joy_msg.angle_End = yValue;
-  if (xValue > 334)
+ float xMax = 615;
+ float xMin = 119;
+ float xZero = 360;
+
+ float yMax = 609;
+ float yMin = 108;
+ float yZero = 360;
+
+ if(xValue > xMax)
+ {
+  joy_msg.x = -1;
+ }
+ else
+ {
+  if (xValue > xZero)
   {
-    joy_msg.data[0] = (xValue - 334) / 126;    
+    joy_msg.x = -(xValue - xZero) / (xMax-xZero);
   }
   else
   {
-    joy_msg.data[0] = (xValue - 334) / 119;
+    if(xValue > xMin)
+    {
+      joy_msg.x = -(xValue - xZero) / (xZero - xMin);
+    }
+    else
+    {
+      joy_msg.x = 1;
+    }
   }
-  if (yValue > 355)
+ }
+
+ if(yValue > yMax)
+ {
+  joy_msg.y = -1;
+ }
+ else
+ {
+  if (yValue > yZero)
   {
-    joy_msg.data[1] = (yValue - 355) / 140;    
+    joy_msg.y = -(yValue - yZero) / (yMax-yZero);
   }
   else
   {
-    joy_msg.data[1] = (yValue - 355) / 115;
+    if(yValue > yMin)
+    {
+      joy_msg.y = -(yValue - yZero) / (yZero - yMin);
+    }
+    else
+    {
+      joy_msg.y = 1;
+    }
   }
-//  joy_msg.x = xValue;//-512)/354
-//  joy_msg.y = yValue;//-512)/354
+ }
+
+//if (fabs(joy_msg.x) < 0.3)
+//{
+//  joy_msg.x = 0;
+//}
+if (joy_msg.x < 0.1 && joy_msg.x > -0.3)
+{
+  joy_msg.x = 0;
+}
+if (fabs(joy_msg.y) < 0.1)
+{
+  joy_msg.y = 0;
+}
+if (joy_msg.x < 0)
+{
+  joy_msg.y = - joy_msg.y;
+}
+
+  //if (yValue > 355)
+  //{
+   // joy_msg.data[1] = (yValue - 355) / 140;
+  //}
+  //else
+  //{
+  //  joy_msg.data[1] = (yValue - 355) / 115;
+ // }
+ // joy_msg.data[0] = xValue;//-512)/354
+ // joy_msg.data[1] = yValue;//-512)/354
   //joy_msg.axes[0] = xValue;
   //joy_msg.axes[1] = yValue;
-
+  //char hello[16] = "hello my world!";
+//joy_msg.data = hello;
+//joy_msg.x = xValue;
+//joy_msg.y = yValue;
+//  if(abs(joy_msg.linear.x) < 0.2)
+//    joy_msg.linear.x = 0;
+//
+//  if(abs(joy_msg.angular.z) < 0.2)
+//    joy_msg.angular.z = 0;
+//
   joy_data.publish( &joy_msg );
   nh.spinOnce();
-  
-  
-  delay(50);
+
+
+  delay(10);
 }

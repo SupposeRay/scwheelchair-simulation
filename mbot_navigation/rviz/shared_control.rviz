@@ -5,13 +5,9 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-<<<<<<< HEAD
-        - /Marker1/Namespaces1
-=======
         - /Path3
         - /Marker1/Namespaces1
         - /Path4
->>>>>>> a24d08b739e2064b9991f3b03071166ac09f4cea
       Splitter Ratio: 0.652777791
     Tree Height: 818
   - Class: rviz/Selection
@@ -372,13 +368,8 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-<<<<<<< HEAD
       Color: 85; 255; 0
       Enabled: false
-=======
-      Color: 255; 0; 0
-      Enabled: true
->>>>>>> a24d08b739e2064b9991f3b03071166ac09f4cea
       Head Diameter: 0.300000012
       Head Length: 0.200000003
       Length: 0.300000012
@@ -422,11 +413,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Marker
       Enabled: false
-<<<<<<< HEAD
       Marker Topic: /line_markers
-=======
-      Marker Topic: /shared_dwa/dwa_shape
->>>>>>> a24d08b739e2064b9991f3b03071166ac09f4cea
       Name: Marker
       Namespaces:
         {}
@@ -434,11 +421,7 @@ Visualization Manager:
       Value: false
     - Class: rviz/Marker
       Enabled: false
-<<<<<<< HEAD
       Marker Topic: /sparse_voronoi/voronoi_lines
-=======
-      Marker Topic: /shared_dwa/dynamic_window
->>>>>>> a24d08b739e2064b9991f3b03071166ac09f4cea
       Name: Marker
       Namespaces:
         {}

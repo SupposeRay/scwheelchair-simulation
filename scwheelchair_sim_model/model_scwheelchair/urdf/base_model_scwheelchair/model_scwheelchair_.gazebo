@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="https://www.ros.org/wiki/xacro">
+
+    <gazebo reference="base_link">
+        <material>Gazebo/Orange</material>
+        <mu1>0.3</mu1>
+        <mu2>0.3</mu2>
+    </gazebo>
+
+    <gazebo reference="seat_link">
+        <material>Gazebo/DarkGrey</material>
+        <mu1>0.3</mu1>
+        <mu2>0.3</mu2>
+    </gazebo>
+
+    <gazebo reference="caster_wheel_left">
+        <material>Gazebo/FlatBlack </material>
+        <mu1>0.0</mu1>
+        <mu2>0.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="caster_wheel_right">
+        <material>Gazebo/FlatBlack </material>
+        <mu1>0.0</mu1>
+        <mu2>0.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="wheel_left">
+        <material>Gazebo/Black</material>
+        <mu1 value="10.0"/>
+        <mu2 value="10.0"/>
+        <kp  value="100000000" />
+        <kd  value="100" />
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <gazebo reference="wheel_right">
+        <material>Gazebo/Black</material>
+        <mu1 value="10.0"/>
+        <mu2 value="10.0"/>
+        <kp  value="10000000.0" />
+        <kd  value="100" />
+        <minDepth>0.001</minDepth>
+        <maxVel>1.0</maxVel>
+    </gazebo>
+
+    <!-- ros_control plugin -->
+    <gazebo>
+        <plugin name="gazebo_ros_control" 
+                filename="libgazebo_ros_control.so">
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin name="differential_drive_controller" 
+                filename="libgazebo_ros_diff_drive.so">
+
+            <robotNamespace>/</robotNamespace>
+                    
+            <alwaysOn>true</alwaysOn>
+            <updateRate>100</updateRate>
+            <leftJoint>wheel_left_joint</leftJoint>
+            <rightJoint>wheel_right_joint</rightJoint>
+            <wheelSeparation>${baseWidth+wheelWidth}</wheelSeparation>
+            <wheelDiameter>${2*wheelRadius}</wheelDiameter>
+            <torque>100</torque>
+            <commandTopic>cmd_vel</commandTopic>
+            <odometryTopic>odom</odometryTopic>
+            <odometryFrame>odom</odometryFrame>
+            <robotBaseFrame>base_footprint</robotBaseFrame>
+            
+            <legacyMode>false</legacyMode>
+            
+            <rosDebugLevel>Debug</rosDebugLevel>
+            <publishWheelTF>true</publishWheelTF>
+            <publishOdomTF>true</publishOdomTF>
+            <publishWheelJointState>true</publishWheelJointState>
+            <wheelAcceleration>5</wheelAcceleration>
+            <wheelTorque>100</wheelTorque>
+            <publishTf>1</publishTf>
+            <odometrySource>1</odometrySource>
+        </plugin>
+    </gazebo>
+
+</robot>

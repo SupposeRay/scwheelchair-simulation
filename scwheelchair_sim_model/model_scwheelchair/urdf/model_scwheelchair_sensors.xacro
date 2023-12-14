@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+
+<robot name="model_scwheelchair" xmlns:xacro="https://www.ros.org/wiki/xacro">
+
+   <xacro:include filename="$(find model_scwheelchair)/urdf/model_scwheelchair.xacro"/>
+
+   <xacro:sensor_rsD435 prefix="cam1" 
+                        parent="base_link" 
+                        x="0" y="0" z="0.5" 
+                        roll="0" pitch="0" yaw="0"
+                        visualize="0"
+    />
+
+   <xacro:sensor_rplidarA3 name="lidar1" 
+                           parent="base_link" 
+                           x="0.3" y="0" z="0.15" 
+                           roll="0" pitch="0" yaw="0"
+                           topic_name="scan"
+                           min_angle="-2.3562" max_angle="2.3562"  
+                           visualize="false"
+   />
+
+   <xacro:sensor_ultrasonic name="ultrasonic1"
+                            parent="base_link"
+                            x="-0.25" y="0" z="0" 
+                            roll="0" pitch="0" yaw="3.14159" 
+                            topic_name="sonar" 
+                            visualize="false"
+   />
+
+</robot>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="destination_generator" pkg="destination_generator" type="destination_generator" output="screen">
+    <rosparam file="$(find destination_generator)/config/destination_generator.yaml" command="load"/>
+    <!-- <remap from="/joystick" to="/keyboard" /> -->
+  </node>
+</launch>

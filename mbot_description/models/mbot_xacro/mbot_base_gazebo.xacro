@@ -3,7 +3,7 @@
 
     <!-- PROPERTY LIST -->
     <xacro:property name="M_PI" value="3.1415926"/>
-    <xacro:property name="base_mass"   value="20" /> 
+    <xacro:property name="base_mass"   value="20" />
     <xacro:property name="base_radius" value="0.20"/>
     <xacro:property name="base_length" value="0.16"/>
 
@@ -13,7 +13,7 @@
     <xacro:property name="wheel_joint_y" value="0.19"/>
     <xacro:property name="wheel_joint_z" value="0.05"/>
 
-    <xacro:property name="caster_mass"    value="0.5" /> 
+    <xacro:property name="caster_mass"    value="0.5" />
     <xacro:property name="caster_radius"  value="0.015"/> <!-- wheel_radius - ( base_length/2 - wheel_joint_z) -->
     <xacro:property name="caster_joint_x" value="0.18"/>
 
@@ -27,13 +27,13 @@
     <material name="gray">
         <color rgba="0.75 0.75 0.75 1"/>
     </material>
-    
+
     <!-- Macro for inertia matrix -->
     <xacro:macro name="sphere_inertial_matrix" params="m r">
         <inertial>
             <mass value="${m}" />
             <inertia ixx="${2*m*r*r/5}" ixy="0" ixz="0"
-                iyy="${2*m*r*r/5}" iyz="0" 
+                iyy="${2*m*r*r/5}" iyz="0"
                 izz="${2*m*r*r/5}" />
         </inertial>
     </xacro:macro>
@@ -43,7 +43,7 @@
             <mass value="${m}" />
             <inertia ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
                 iyy="${m*(3*r*r+h*h)/12}" iyz = "0"
-                izz="${m*r*r/2}" /> 
+                izz="${m*r*r/2}" />
         </inertial>
     </xacro:macro>
 
@@ -112,7 +112,7 @@
                 <geometry>
                     <sphere radius="${caster_radius}" />
                 </geometry>
-            </collision>      
+            </collision>
             <sphere_inertial_matrix  m="${caster_mass}" r="${caster_radius}" />
         </link>
 
@@ -135,7 +135,7 @@
         </gazebo>
 
         <joint name="base_footprint_joint" type="fixed">
-            <origin xyz="0 0 ${base_length/2 + caster_radius*2}" rpy="0 0 0" />        
+            <origin xyz="0 0 ${base_length/2 + caster_radius*2}" rpy="0 0 0" />
             <parent link="base_footprint"/>
             <child link="base_link" />
         </joint>
@@ -153,7 +153,7 @@
                 <geometry>
                     <cylinder length="${base_length}" radius="${base_radius}"/>
                 </geometry>
-            </collision>   
+            </collision>
             <cylinder_inertial_matrix  m="${base_mass}" r="${base_radius}" h="${base_length}" />
         </link>
 
@@ -161,25 +161,25 @@
             <material>Gazebo/Blue</material>
         </gazebo>
 
-        <wheel prefix="left"  reflect="-1"/>
-        <wheel prefix="right" reflect="1"/>
+        <wheel prefix="left"  reflect="1"/>
+        <wheel prefix="right" reflect="-1"/>
 
         <caster prefix="front" reflect="-1"/>
         <caster prefix="back"  reflect="1"/>
 
         <!-- controller -->
         <gazebo>
-            <plugin name="differential_drive_controller" 
+            <plugin name="differential_drive_controller"
                     filename="libgazebo_ros_diff_drive.so">
                 <rosDebugLevel>Debug</rosDebugLevel>
-                <publishWheelTF>true</publishWheelTF>                
-		<publishOdomTF>true</publishOdomTF>
+                <publishWheelTF>true</publishWheelTF>
+		        <publishOdomTF>true</publishOdomTF>
                 <robotNamespace>/</robotNamespace>
                 <publishTf>1</publishTf>
                 <publishWheelJointState>true</publishWheelJointState>
                 <alwaysOn>true</alwaysOn>
                 <updateRate>100.0</updateRate>
-                <legacyMode>true</legacyMode>
+                <legacyMode>false</legacyMode>
                 <leftJoint>left_wheel_joint</leftJoint>
                 <rightJoint>right_wheel_joint</rightJoint>
                 <wheelSeparation>${wheel_joint_y*2}</wheelSeparation>
@@ -188,11 +188,11 @@
                 <wheelTorque>30</wheelTorque>
                 <wheelAcceleration>1.8</wheelAcceleration>
                 <commandTopic>cmd_vel</commandTopic>
-                <odometryFrame>odom</odometryFrame> 
-                <odometryTopic>odom</odometryTopic> 
+                <odometryFrame>odom</odometryFrame>
+                <odometryTopic>odom</odometryTopic>
                 <robotBaseFrame>base_footprint</robotBaseFrame>
             </plugin>
-        </gazebo> 
+        </gazebo>
     </xacro:macro>
 
 </robot>
