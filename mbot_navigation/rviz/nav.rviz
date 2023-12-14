@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /RobotModel1/Links1/base_footprint1
+        - /Pose1/Status1
       Splitter Ratio: 0.6527777910232544
     Tree Height: 770
   - Class: rviz/Selection
@@ -33,6 +34,24 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
+    - Alpha: 0.5
+      Cell Size: 0.5
+      Class: rviz/Grid
+      Color: 0; 0; 0
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 80
+      Reference Frame: odom
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -111,11 +130,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        back_caster_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         base_footprint:
           Alpha: 1
           Show Axes: false
@@ -159,22 +173,37 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        front_caster_link:
+        laser_joint:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        laser_link:
+        left_caster_hub_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        left_wheel_link:
+        left_caster_wheel_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        right_wheel_link:
+        left_front_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_caster_hub_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_caster_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_front_wheel_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -466,22 +495,12 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /visualization/waypoints
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /shared_voronoi_without_goal/voronoi_edges_viz
+      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/voronoi_edges
       Name: MarkerArray
       Namespaces:
-        Lonely Nodes: true
-        Obstacle Centroids: true
-        Voronoi Edges: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -494,17 +513,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /shared_voronoi_without_goal/all_paths_viz
+      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/all_paths_viz
       Name: MarkerArray
       Namespaces:
-        Path 0: true
-        Path 0 text: true
-        Path 1: true
-        Path 1 text: true
-        Path 2: true
-        Path 2 text: true
-        Path 3: true
-        Path 3 text: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -513,7 +525,7 @@ Visualization Manager:
       Draw Behind: false
       Enabled: true
       Name: Map
-      Topic: /map_dilated
+      Topic: /move_base/global_costmap/costmap
       Unreliable: false
       Use Timestamp: false
       Value: true
@@ -559,7 +571,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -15.720049858093262
+      Angle: -15.700052261352539
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -569,11 +581,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 12.138957977294922
+      Scale: 24.155662536621094
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 3.4553380012512207
-      Y: -24.286724090576172
+      X: -2.4924821853637695
+      Y: -1.9092379808425903
     Saved: ~
 Window Geometry:
   Displays:
@@ -583,7 +595,7 @@ Window Geometry:
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000055b000003a7fc0200000007fc0000003d000003a7000000e60100001cfa000000010100000002fb000000100044006900730070006c0061007900730100000000ffffffff0000015600fffffffb0000000a0049006d00610067006501000000000000055b0000005e00fffffffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000c00430061006d0065007200610000000211000001d10000000000000000fb0000000c00430061006d0065007200610100000334000000ce00000000000000000000000100000156000003a7fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000270000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073d000002d0fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a0000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000001dc000003a700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000055b000003a7fc0200000007fc0000003d000003a7000000e60100001cfa000000010100000002fb000000100044006900730070006c0061007900730100000000ffffffff0000015600fffffffb0000000a0049006d00610067006501000000000000055b0000005e00fffffffb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000c00430061006d0065007200610000000211000001d10000000000000000fb0000000c00430061006d0065007200610100000334000000ce00000000000000000000000100000156000003a7fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000270000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000073d000002d0fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a0000002eb00fffffffb0000000800540069006d00650100000000000004500000000000000000000001dc000003a700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

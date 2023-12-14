@@ -21,6 +21,9 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalStatusArray.h>
+// Visualization
+// #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 // Custom Messages
 #include <path_belief_update/WaypointDistribution.h>
 #include <voronoi_msgs_and_types/PathList.h>
@@ -62,14 +65,10 @@ namespace belief_update
         void beliefTimerCallback(const ros::TimerEvent&);
         // publish final result
         void PublishResults();
-        // tranform the path list from map to local
-        void pathToLocal(voronoi_msgs_and_types::PathList &msg_path);
-        // redistribute the probabilities
-        std::vector<float> redistributeProb(voronoi_msgs_and_types::PathList old_path, voronoi_msgs_and_types::PathList new_path, std::vector<int> old_index, std::vector<int> new_index, std::vector<float> prob_path);
+        // link the circle distribution to current paths
+        void linkCircle2Path(voronoi_msgs_and_types::PathList path_info);
         // generate short-term goals from paths for belief updating
-        void generateGoal();
-        // find a goal along a path
-        geometry_msgs::Pose findGoal(const nav_msgs::Path &msg_path);
+        void generateGoal(voronoi_msgs_and_types::PathList path_info);
         // compute the translational state value V of each goal given current state (position)
         // float calTranslationStateValue(geometry_msgs::Pose goal_pose);
         // compute the rotational state value V of each goal given current state (position)
@@ -78,6 +77,7 @@ namespace belief_update
         // float calTranslationStateActionValue(float v_action, float w_action, geometry_msgs::Pose goal_pose);
         // compute the rotational state-action value Q of each goal given current state (position) and action (u,v)
         // float calRotationStateActionValue(float v_action, float w_action, geometry_msgs::Pose goal_pose);
+        float calRotationValue(float x_input, float y_input, tf2::Vector3 sector_direction);
         float calRotationValue(float x_input, float y_input, geometry_msgs::Pose goal_pose);
         // compute the translational action cost
         // float calTranslationActionCost(float dis_next);
@@ -98,8 +98,6 @@ namespace belief_update
         std::vector<float> normalize(std::vector<float> belief_vector);
 
         // Private Member Attributes
-        // PI
-        double PI = 3.14159265358;
         // ROS nodehandle
         ros::NodeHandle &node_handle_;
         // ROS subscribers and publishers 
@@ -108,25 +106,40 @@ namespace belief_update
         ros::Subscriber input_subscriber_;
 
         ros::Publisher goal_publisher_;
-        ros::Publisher path_publisher_;
+        ros::Publisher viz_publisher_;
         ros::Timer belief_timer_;
         ros::Timer publish_timer_;
+        // markers to show in Rviz
+        visualization_msgs::MarkerArray circle_viz;
+        visualization_msgs::Marker circle_line;
         // the interval of updating belief with user action
         float update_interval = 0.5;
         // the interval of publishing topics
         float publish_interval = 0.1;
         // a bool value to trigger the action update timer
         bool action_update = false;
-        // the belief space
-        std::vector<float> belief_goal;
-        // obtained local goal_list
-        geometry_msgs::PoseArray goal_list;
-        // signal obtained from published paths
+        // the circle belief space
+        std::vector<float> belief_circle;
+        // the circle angle space
+        std::vector<float> angle_circle;
+        // global directions
+        std::vector<tf2::Vector3> circle_global_direction;
+        // path directions
+        std::vector<tf2::Vector3> goal_local_direction;
+        // path directions
+        std::vector<tf2::Vector3> pre_goal_local_direction;
+        // path info obtained from published paths
         voronoi_msgs_and_types::PathList path_list;
-        // previous published paths to check the change
-        voronoi_msgs_and_types::PathList pre_path_list;
         // the current waypoints and their probability distribution
         path_belief_update::WaypointDistribution waypoint_belief;
+        // obtained local goal_list
+        geometry_msgs::PoseArray goal_list;
+        // the temp path belief space
+        std::vector<float> belief_path;
+        // previous path belief space
+        std::vector<float> pre_belief_path;
+        // the circle mode, whether to use pure direction or assume the user is aware of voronoi paths
+        std::string circle_mode = "direction";
         // bool value to check if a specific msg is received
         bool odom_receive = false;
         bool input_receive = false;
@@ -169,20 +182,5 @@ namespace belief_update
         // int pre_goal_index = -1;
         tf2_ros::Buffer tf_buffer;
         tf2_ros::TransformListener tf_listener;
-    };
-
-    class seq_finder
-    {
-    public:
-        seq_finder(const int seq)
-        :path_sequence(seq){}
-
-        bool operator ()(const std::vector<nav_msgs::Path>::value_type &path)
-        {
-            return path.header.seq == path_sequence;
-        }
-    
-    private:
-        int path_sequence;                    
     };
 }

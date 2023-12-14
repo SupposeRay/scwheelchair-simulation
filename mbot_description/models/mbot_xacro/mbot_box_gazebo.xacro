@@ -81,7 +81,7 @@
                     <cylinder radius="${wheel_radius}" length = "${wheel_length}"/>
                 </geometry>
             </collision>
-            <cylinder_inertial_matrix  m="${wheel_mass}" r="${wheel_radius}" h="${wheel_length}" />
+            <xacro:cylinder_inertial_matrix  m="${wheel_mass}" r="${wheel_radius}" h="${wheel_length}" />
         </link>
 
         <gazebo reference="${prefix}_wheel_link">
@@ -124,7 +124,7 @@
                     <sphere radius="${caster_radius}" />
                 </geometry>
             </collision>
-            <sphere_inertial_matrix  m="${caster_mass}" r="${caster_radius}" />
+            <xacro:sphere_inertial_matrix  m="${caster_mass}" r="${caster_radius}" />
         </link>
 
         <gazebo reference="${prefix}_caster_link">
@@ -143,6 +143,17 @@
         </link>
         <gazebo reference="base_footprint">
             <turnGravityOff>false</turnGravityOff>
+            <sensor name="bumper_sensor" type="contact">
+            <always_on>true</always_on>
+            <update_rate>30</update_rate>
+            <contact>
+                <collision>base_footprint_fixed_joint_lump__base_link_collision</collision>
+            </contact>
+            <plugin name="bumper_plugin" filename="libgazebo_ros_bumper.so">
+                <bumperTopicName>mbot_base_collision</bumperTopicName>
+                <frameName>base_footprint</frameName>
+            </plugin>
+            </sensor>
         </gazebo>
 
         <joint name="base_footprint_joint" type="fixed">
@@ -182,25 +193,65 @@
                     <box size="${base_length} ${base_width} ${base_height}"/>
                 </geometry>
             </collision>
-            <box_inertial_matrix  m="${base_mass}" h = "${base_height}" l = "${base_length}" w ="${base_width}" />
+            <xacro:box_inertial_matrix  m="${base_mass}" h = "${base_height}" l = "${base_length}" w ="${base_width}" />
         </link>
 
         <gazebo reference="base_link">
             <material>Gazebo/Blue</material>
         </gazebo>
 
-        <wheel prefix="left"  reflect="1"/>
-        <wheel prefix="right" reflect="-1"/>
+        <joint name="marker_joint" type="fixed">
+            <origin xyz="0 0.06 0.70" rpy="0 0 0" />
+            <parent link="base_link"/>
+            <child link="marker_link" />
+        </joint>
 
-        <caster prefix="front" reflect="-1"/>
-        <caster prefix="back"  reflect="1"/>
+        <link name="marker_link">
+            <visual>
+                <origin xyz=" 0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="0.80" radius="0.01"/>
+                </geometry>
+                <!-- <material name="yellow" /> -->
+            </visual>
+        </link>
+
+        <gazebo reference="marker_link">
+            <material>Gazebo/Black</material>
+        </gazebo>
+
+        <joint name="marker_joint2" type="fixed">
+            <origin xyz="0 -0.06 0.70" rpy="0 0 0" />
+            <parent link="base_link"/>
+            <child link="marker_link2" />
+        </joint>
+
+        <link name="marker_link2">
+            <visual>
+                <origin xyz=" 0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="0.80" radius="0.01"/>
+                </geometry>
+                <!-- <material name="yellow" /> -->
+            </visual>
+        </link>
+
+        <gazebo reference="marker_link2">
+            <material>Gazebo/Black</material>
+        </gazebo>
+
+        <xacro:wheel prefix="left"  reflect="1"/>
+        <xacro:wheel prefix="right" reflect="-1"/>
+
+        <xacro:caster prefix="front" reflect="-1"/>
+        <xacro:caster prefix="back"  reflect="1"/>
 
         <!-- controller -->
         <gazebo>
             <plugin name="differential_drive_controller"
                     filename="libgazebo_ros_diff_drive.so">
                 <rosDebugLevel>Debug</rosDebugLevel>
-                <publishWheelTF>true</publishWheelTF>
+                <publishWheelTF>false</publishWheelTF>
 		        <publishOdomTF>true</publishOdomTF>
                 <robotNamespace>/</robotNamespace>
                 <publishTf>1</publishTf>

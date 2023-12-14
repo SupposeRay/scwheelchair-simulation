@@ -5,7 +5,6 @@ import os, sys
 import readline
 import math
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from scipy.spatial.distance import euclidean, directed_hausdorff
 from dtw import dtw # https://dynamictimewarping.github.io/python/ pip3/pip install dtw-python
 
@@ -104,8 +103,8 @@ while 1:
 user_path_x, user_path_y = zip(*user_path)
 ref_path_x, ref_path_y = zip(*ref_path)
 path_plot = plt.figure(1)
-plt.plot(user_path_x, user_path_y, label="User's path")
-plt.plot(ref_path_x, ref_path_y, label="Reference path", ls="--")
+plt.plot(user_path_x, user_path_y, color='darkorange', label="User's path")
+plt.plot(ref_path_x, ref_path_y, "--", color='black', label="Reference path")
 if(len(sys.argv) > 2):
     if (sys.argv[2] == 'D'):
         door1 = plt.Rectangle((3.0, 0.4),0.2,1.0,edgecolor='r')
@@ -134,95 +133,89 @@ plt.ylabel("y-coordinate")
 plt.legend()
 plt.grid(True)
 plt.axis('scaled')
-def update_points(frame):
-    point_ani.set_data(user_path_x[frame], user_path_y[frame])
-    text_pt.set_position((user_path_x[frame], user_path_y[frame]))
-    text_pt.set_text("time = %.3f"%(user_time[frame]))
-    return point_ani, text_pt,
-point_ani, = plt.plot(user_path_x[0], user_path_y[0], "ro")
-text_pt = plt.text(0, 0, '', fontsize=10)
-ani = animation.FuncAnimation(path_plot, update_points, np.arange(0, len(user_path_x)), interval= 2, repeat=False, blit=True)
+# eval('plt.savefig(\'SF-'+ log_file[-9:-4] +'.png\')')
+
 # Get average robot linear and angular acceleration
-# robot_acc = np.array([])
-# robot_ang_acc = np.array([])
-# for i in range(len(robot_velocity) - 1):
-#     dvx = robot_velocity[i+1][0] - robot_velocity[i][0]
-#     dwz = robot_velocity[i+1][1] - robot_velocity[i][1]
-#     dt = user_time[i+1] - user_time[i]
-#     if(dt == 0):
-#         robot_acc = np.append(robot_acc, 0)
-#         robot_ang_acc = np.append(robot_ang_acc, 0)
-#     else:
-#         robot_acc = np.append(robot_acc, dvx/dt)
-#         robot_ang_acc = np.append(robot_ang_acc, dwz/dt)
+robot_acc = np.array([])
+robot_ang_acc = np.array([])
+for i in range(len(robot_velocity) - 1):
+    dvx = robot_velocity[i+1][0] - robot_velocity[i][0]
+    dwz = robot_velocity[i+1][1] - robot_velocity[i][1]
+    dt = user_time[i+1] - user_time[i]
+    if(dt == 0):
+        robot_acc = np.append(robot_acc, 0)
+        robot_ang_acc = np.append(robot_ang_acc, 0)
+    else:
+        robot_acc = np.append(robot_acc, dvx/dt)
+        robot_ang_acc = np.append(robot_ang_acc, dwz/dt)
 
-# # Plot robot's acceleration and print average acceleration
-# # robot_acc_plot = plt.figure(2)
-# # plt.plot(user_time[0: len(user_time) - 1], robot_acc, label="Linear acceleration", ls="-.")
-# # plt.plot(user_time[0: len(user_time) - 1], robot_ang_acc, label="Angular acceleration", ls="--", alpha=0.5)
-# # plt.title("Robot Acceleration")
-# # plt.xlabel("Time")
-# # plt.ylabel("Acceleration (m/s^2) / (rad/s^2)")
-# # plt.legend()
-# # plt.grid(True)
+# Plot robot's acceleration and print average acceleration
+robot_acc_plot = plt.figure(2)
+plt.plot(user_time[0: len(user_time) - 1], robot_acc, label="Linear acceleration", ls="-.")
+plt.plot(user_time[0: len(user_time) - 1], robot_ang_acc, label="Angular acceleration", ls="--", alpha=0.5)
+plt.title("Robot Acceleration")
+plt.xlabel("Time")
+plt.ylabel("Acceleration (m/s^2) / (rad/s^2)")
+plt.legend()
+plt.grid(True)
 
-# # Get average user linear and angular acceleration
-# user_acc = np.array([])
-# user_ang_acc = np.array([])
-# for i in range(len(user_input) - 1):
-#     dvx = user_input[i+1][0] - user_input[i][0]
-#     dwz = user_input[i+1][1] - user_input[i][1]
-#     dt = user_time[i+1] - user_time[i]
-#     if(dt == 0):
-#         user_acc = np.append(user_acc, 0)
-#         user_ang_acc = np.append(user_ang_acc, 0)
-#     else:
-#         user_acc = np.append(user_acc, dvx/dt)
-#         user_ang_acc = np.append(user_ang_acc, dwz/dt)
+# Get average user linear and angular acceleration
+user_acc = np.array([])
+user_ang_acc = np.array([])
+for i in range(len(user_input) - 1):
+    dvx = user_input[i+1][0] - user_input[i][0]
+    dwz = user_input[i+1][1] - user_input[i][1]
+    dt = user_time[i+1] - user_time[i]
+    if(dt == 0):
+        user_acc = np.append(user_acc, 0)
+        user_ang_acc = np.append(user_ang_acc, 0)
+    else:
+        user_acc = np.append(user_acc, dvx/dt)
+        user_ang_acc = np.append(user_ang_acc, dwz/dt)
 
-# # Plot robot's acceleration and print average acceleration
-# # user_acc_plot = plt.figure(3)
-# # plt.plot(user_time[0: len(user_time) - 1], user_acc, label="Linear Input Rate of Change", ls="-.")
-# # plt.plot(user_time[0: len(user_time) - 1], user_ang_acc, label="Angular Input Rate of Change", ls="--", alpha=0.5)
-# # plt.title("User Input Rate of Change")
-# # plt.xlabel("Time")
-# # plt.ylabel("Rate of change (m/s^2) / (rad/s^2)")
-# # plt.legend()
-# # plt.grid(True)
+# Plot robot's acceleration and print average acceleration
+user_acc_plot = plt.figure(3)
+plt.plot(user_time[0: len(user_time) - 1], user_acc, label="Linear Input Rate of Change", ls="-.")
+plt.plot(user_time[0: len(user_time) - 1], user_ang_acc, label="Angular Input Rate of Change", ls="--", alpha=0.5)
+plt.title("User Input Rate of Change")
+plt.xlabel("Time")
+plt.ylabel("Rate of change (m/s^2) / (rad/s^2)")
+plt.legend()
+plt.grid(True)
 
-# # Compute deviation from reference path using different metrics
-# normal_dtw = -1
-# try:
-#     normal_dtw = dtw(ref_path, user_path, distance_only=True).normalizedDistance
-# except:
-#     print("Normalized dtw was unable to be calculated")
-# hausdorff_dist = directed_hausdorff(ref_path, user_path)[0]
+# Compute deviation from reference path using different metrics
+normal_dtw = -1
+try:
+    normal_dtw = dtw(ref_path, user_path, distance_only=True).normalizedDistance
+except:
+    print("Normalized dtw was unable to be calculated")
+hausdorff_dist = directed_hausdorff(ref_path, user_path)[0]
 
-# # Calculate path smoothness with linear and angular acceleration squared averages
-# avg_lin_acc = np.average(np.square(robot_acc))
-# avg_ang_acc = np.average(np.square(robot_ang_acc))
+# Calculate path smoothness with linear and angular acceleration squared averages
+avg_lin_acc = np.average(np.square(robot_acc))
+avg_ang_acc = np.average(np.square(robot_ang_acc))
 
-# # Calculate user burden based on user input's squared averages
-# avg_user_lin_acc = np.average(np.square(user_acc))
-# avg_user_ang_acc = np.average(np.square(user_ang_acc))
+# Calculate user burden based on user input's squared averages
+avg_user_lin_acc = np.average(np.square(user_acc))
+avg_user_ang_acc = np.average(np.square(user_ang_acc))
 
-# # Output all results
-# print("Normalized dtw distance: " + str(normal_dtw))
-# print("Directed Hausdorff distance: " + str(hausdorff_dist))
-# print("Robot squared average linear acceleration: " + str(avg_lin_acc) + " (m/s^2)^2")
-# print("Robot squared average angular acceleration: " + str(avg_ang_acc) + " (rad/s^2)^2")
-# print("User input squared average linear acceleration: " + str(avg_user_lin_acc) + " (m/s^2)^2")
-# print("User input squared average angular acceleration: " + str(avg_user_ang_acc) + " (rad/s^2)^2")
-# print("Total time of user's trajectory: " + str(user_time[-1]) + "s")
+# Output all results
+print("Normalized dtw distance: " + str(normal_dtw))
+print("Directed Hausdorff distance: " + str(hausdorff_dist))
+print("Robot squared average linear acceleration: " + str(avg_lin_acc) + " (m/s^2)^2")
+print("Robot squared average angular acceleration: " + str(avg_ang_acc) + " (rad/s^2)^2")
+print("User input squared average linear acceleration: " + str(avg_user_lin_acc) + " (m/s^2)^2")
+print("User input squared average angular acceleration: " + str(avg_user_ang_acc) + " (rad/s^2)^2")
+print("Total time of user's trajectory: " + str(user_time[-1]) + "s")
 
-# # Save computed results into output file
-# save_file = log_file[0: len(log_file) - 4] + "_results.txt"
-# save = open(save_file, "w")
-# save.writelines("normalized_dtw,directed_hausdorff,robot_avg_sqrd_lin_acc,robot_avg_sqrd_ang_acc,user_avg_sqrd_lin_acc,user_avg_sqrd_ang_acc,total_time\n")
-# save.writelines(str(normal_dtw) + "," + str(hausdorff_dist) + "," + str(avg_lin_acc) + "," + str(avg_ang_acc) + "," + str(avg_user_lin_acc) + "," + str(avg_user_ang_acc) + "," + str(user_time[-1]))
+# Save computed results into output file
+save_file = log_file[0: len(log_file) - 4] + "_results.txt"
+save = open(save_file, "w")
+save.writelines("normalized_dtw,directed_hausdorff,robot_avg_sqrd_lin_acc,robot_avg_sqrd_ang_acc,user_avg_sqrd_lin_acc,user_avg_sqrd_ang_acc,total_time\n")
+save.writelines(str(normal_dtw) + "," + str(hausdorff_dist) + "," + str(avg_lin_acc) + "," + str(avg_ang_acc) + "," + str(avg_user_lin_acc) + "," + str(avg_user_ang_acc) + "," + str(user_time[-1]))
 
-# save.close()
-# f.close()
+save.close()
+f.close()
 
 if(len(sys.argv) > 2):
     plt.show()

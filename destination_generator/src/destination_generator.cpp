@@ -25,9 +25,9 @@
 #include <string>
 // #include <functional> 
 // OpenCV
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+// #include <opencv2/core.hpp>
+// #include <opencv2/highgui.hpp>
+// #include <opencv2/imgproc.hpp>
 
 move_base_msgs::MoveBaseActionGoal global_goal;
 geometry_msgs::Pose initial_pose, goal_pose, mid_pose;

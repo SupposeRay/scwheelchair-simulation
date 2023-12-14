@@ -25,9 +25,9 @@
   <xacro:property name="kinecty" value="0.0" />
   <xacro:property name="kinectz" value="1.41" />
 
-  <wheelchair_kinect_single parent="base_link" roll="0.0" pitch="0.2" yaw="0.0" x="${kinectx}" y="${kinecty}" z="${kinectz}" />
+  <xacro:wheelchair_kinect_single parent="base_link" roll="0.0" pitch="0.2" yaw="0.0" x="${kinectx}" y="${kinecty}" z="${kinectz}" />
 
-  <wheelchair_hokuyo parent="base_link" roll="${PI}" pitch="-0.1" yaw="0.0" x="0.25" y="0.0" z="0.1" />
+  <xacro:wheelchair_hokuyo parent="base_link" roll="${PI}" pitch="-0.1" yaw="0.0" x="0.25" y="0.0" z="0.1" />
 
 
   <!-- Macro for front wheel only -->
@@ -166,7 +166,7 @@
         <turnGravityOff>false</turnGravityOff>
         <sensor name="bumper_sensor" type="contact">
         <always_on>true</always_on>
-        <update_rate>30</update_rate>
+        <update_rate>10</update_rate>
         <contact>
             <collision>base_footprint_fixed_joint_lump__base_link_collision</collision>
             <collision>base_footprint_fixed_joint_lump__camera_link_collision_1</collision>

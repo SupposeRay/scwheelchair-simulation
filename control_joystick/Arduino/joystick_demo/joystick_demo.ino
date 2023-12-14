@@ -22,7 +22,7 @@ void setup() {
 }
 
 void loop() {
-  float xValue = analogRead(joyX);
+  float xValue = -analogRead(joyX);
   float yValue = analogRead(joyY);
   Serial.print(xValue);
   Serial.print("\t");
@@ -30,56 +30,56 @@ void loop() {
 
   //joy_msg.angle_Start = xValue;
   //joy_msg.angle_End = yValue;
- float xMax = 713;
- float xMin = 435;
- float xZero = 568;
+ float xMax = -971;
+ float xMin = -20;
+ float xZero = -495;
 
- float yMax = 705;
- float yMin = 426;
- float yZero = 559;
+ float yMax = 993;
+ float yMin = 17;
+ float yZero = 506;
 
- if(xValue > xMax)
+ if(-xValue > -xMax)
  {
-  joy_msg.x = -1;
+  joy_msg.x = 1;
  }
  else
  {
-  if (xValue > xZero)
+  if (-xValue > -xZero)
   {
-    joy_msg.x = -(xValue - xZero) / (xMax-xZero);
+    joy_msg.x = (-xValue + xZero) / (-xMax+xZero);
   }
   else
   {
-    if(xValue > xMin)
+    if(-xValue > -xMin)
     {
-      joy_msg.x = -(xValue - xZero) / (xZero - xMin);
+      joy_msg.x = (-xValue + xZero) / (-xZero + xMin);
     }
     else
     {
-      joy_msg.x = 1;
+      joy_msg.x = -1;
     }
   }
  }
 
  if(yValue > yMax)
  {
-  joy_msg.y = -1;
+  joy_msg.y = 1;
  }
  else
  {
   if (yValue > yZero)
   {
-    joy_msg.y = -(yValue - yZero) / (yMax-yZero);
+    joy_msg.y = (yValue - yZero) / (yMax-yZero);
   }
   else
   {
     if(yValue > yMin)
     {
-      joy_msg.y = -(yValue - yZero) / (yZero - yMin);
+      joy_msg.y = (yValue - yZero) / (yZero - yMin);
     }
     else
     {
-      joy_msg.y = 1;
+      joy_msg.y = -1;
     }
   }
  }

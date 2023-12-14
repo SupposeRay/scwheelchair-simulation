@@ -42,7 +42,7 @@ fixed_frame_id: "map"
 base_frame_id: "base_link"
 # the local frame id
 
-footprint_mode: "radius"
+footprint_mode: "rectangle"
 # the footprint mode for collision check
 # options: "radius", "rectangle"
 # "radius": use an envelope circle to represent the footprint of the robot
@@ -60,7 +60,7 @@ weight_cmd: 0.8
 # the values must be non-negative and the sum must be 1
 # when enable_dynamic_weight is true, the weight_cmd is the uppper bound of weight assigned to cmd
 
-rectangle_point: [0.5, 0.5, 0.5, -0.5, -0.5, -0.5, -0.5, 0.5]
+rectangle_point: [-0.5, -0.38, -0.5, 0.38, 0.4, 0.38, 0.4, -0.38]
 # when choosing "rectangle" footprint mode, this stands for the coordinates of 4 corner points of the robot
 # the sequence of this list is x1 y1 x2 y2 x3 y3 x4 y4 with a counter-clockwise
 
@@ -104,6 +104,9 @@ use_dynamic_obstacles: false
 
 min_clearance_threshold: 0.0
 # sets the minimum clearance required for a velocity pair to be valid
+
+dyn_obst_offset: 0.0
+# sets the offset to increase dynamic obstacle's radius by, in m
 
 use_expected_cost: false
 # whether to use the most likely goal or expected cost

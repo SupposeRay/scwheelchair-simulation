@@ -1,21 +1,20 @@
 <launch>
 
     <!-- set parameters of launch file -->
-    <arg name="world_name" value="$(find mbot_gazebo)/worlds/hospital.world"/>
+    <arg name="world_name" value="$(find mbot_gazebo)/worlds/empty.world"/>
     <arg name="paused" default="false"/>
     <arg name="use_sim_time" default="true"/>
     <arg name="gui" default="false"/>
     <arg name="headless" default="false"/>
-    <arg name="recording" default="false"/>
     <arg name="debug" default="false"/>
-    <env name="GAZEBO_MODEL_PATH" value="$(find aws_robomaker_hospital_world)/models:$(find aws_robomaker_hospital_world)/fuel_models"/>
+    <arg name="verbose" default="false"/>
 
-    <arg name="x" default="-8.5"/>
-    <arg name="y" default="-20"/>
+    <arg name="x" default="-10"/>
+    <arg name="y" default="0"/>
     <arg name="z" default="0"/>
     <arg name="roll" default="0"/>
     <arg name="pitch" default="0"/>
-    <arg name="yaw" default="-1.57079632679"/>
+    <arg name="yaw" default="0"/>
 
     <!-- run gazebo simulation -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -23,24 +22,26 @@
         <arg name="debug" value="$(arg debug)" />
         <arg name="gui" value="$(arg gui)" />
         <arg name="paused" value="$(arg paused)"/>
+        <arg name="verbose" value="$(arg verbose)"/>
         <arg name="use_sim_time" value="$(arg use_sim_time)"/>
         <arg name="headless" value="$(arg headless)"/>
-        <arg name="recording" value="$(arg recording)"/>
     </include>
-<remap from="tf" to="gazebo_tf"/>
 
     <!-- load robot description -->
-    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find mbot_description)/models/mbot_xacro/mbot_with_laser_camera_gazebo.xacro'" /> 
-    
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find mbot_description)/models/mbot_xacro/mbox_with_laser_camera_gazebo.xacro'" /> 
+
     <!-- run joint_state_publisher node and publish robot joint state info  -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" ></node> 
 
     <!-- run robot_state_publisher node and publish tf  -->
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  output="screen" >
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"  output="screen" args="$(arg use_sim_time)">
         <param name="publish_frequency" type="double" value="50.0" />
     </node>
 
     <!-- load robot model in gazebo -->
+    <!-- <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+          args="-urdf -model mrobot -param robot_description"> 
+    </node> -->
     <node name="spawn_robot" pkg="gazebo_ros" type="spawn_model"
         args="-urdf -param robot_description -model mbot
               -x $(arg x) -y $(arg y) -z $(arg z)

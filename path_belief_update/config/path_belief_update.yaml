@@ -4,7 +4,7 @@ publish_interval: 0.1
 update_interval: 0.5
 # the interval of updating belief     [s]
 
-discount_factor: 3.0
+discount_factor: 1.0
 # the discount factor for state-action value
 
 angle_threshold: 90
@@ -28,8 +28,8 @@ temp_softmax: 1.0
 rate_factor: 3.0
 # the rate of updating probability distribution
 
-upper_bound: 0.9 
-lower_bound: 0.01
+upper_bound: 0.8
+lower_bound: 0.1
 # the thresholds for clipping the probability
 
 waypoint_increment: 0.5
@@ -42,3 +42,7 @@ input_datatype: "point"
 x_max: 1.0
 y_max: 1.0
 # the max values of x and y inputs to do the normalization
+
+circle_mode: "path"
+# the circle mode, whether to use pure direction or assume the user is aware of voronoi paths
+# options: "direction", "path"
