@@ -99,8 +99,6 @@ def main():
         pose_msg.pose.pose.orientation.y = 0
         pose_msg.pose.pose.orientation.z = 0
         pose_msg.pose.pose.orientation.w = 1
-    
-    pose_msg.pose.covariance = [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.06853892326654787]
 
     rospy.wait_for_service('/gazebo/set_model_state')
     try:
@@ -110,22 +108,17 @@ def main():
     except rospy.ServiceException as exc:
         print ("\"set_model_state\" service call failed: " + str(exc))
 
-    pub = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size = 1)
+    # pub = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size = 1)
 
     # rate = rospy.Rate(5)
     # t_start = rospy.Time.now()
     # while not rospy.is_shutdown():
-    #     pose_msg.header.stamp = rospy.Time.now()
     #     pub.publish(pose_msg)
     #     t_end = rospy.Time.now()
     #     t_span = (t_end - t_start).to_sec()
     #     if t_span >= 1:
     #         break
     #     rate.sleep()
-
-    rospy.sleep(1)
-
-    pub.publish(pose_msg)
     
     # rospy.wait_for_service('/set_map')
     # try:

@@ -1,17 +1,17 @@
 raw_data_topic: "/user/joy"
 # the raw data read from the MCU, including x, y, and angle values
 
-published_topic: "/joy_vel"
+published_topic: "/joystick_calib"
 # the final published joystick topic after calibration
 
-calib_path: "/home/ray/"
+calib_path: "/home/mrca/mrca_ws/src/scwheelchair-simulation/joystick_control/config/"
 # the path to save the calibration file
 
 calib_name: "joystick_calibration.txt"
 # the file name of the calibration data
 
-linear_scale: 1.0
+linear_scale: 0.7
 # the variable to scale the linear velocity of joystick input, 0 ~ 1
 
-angular_scale: 1.0
+angular_scale: 0.7
 # the variable to scale the angular velocity of joystick input, 0 ~ 1

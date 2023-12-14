@@ -6,9 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Map1/Position1
-        - /Map2
       Splitter Ratio: 0.6526610255241394
-    Tree Height: 530
+    Tree Height: 796
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -38,7 +37,7 @@ Visualization Manager:
       Cell Size: 0.5
       Class: rviz/Grid
       Color: 88; 88; 90
-      Enabled: false
+      Enabled: true
       Line Style:
         Line Width: 0.029999999329447746
         Value: Lines
@@ -51,7 +50,7 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 80
       Reference Frame: map
-      Value: false
+      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz/Odometry
       Covariance:
@@ -183,7 +182,73 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /visualization/pomdp_user_cmd
+      Marker Topic: /visualization/dwa_cone
+      Name: Marker
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/dwa_final_output
+      Name: Marker
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/dwa_follow_path
+      Name: Marker
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/dwa_follow_user
+      Name: Marker
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/dwa_user_cmd
+      Name: Marker
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/all_paths_viz
+      Name: MarkerArray
+      Namespaces:
+        Path 0: true
+        Path 1: true
+        Path 2: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /visualization/prob_txt
+      Name: MarkerArray
+      Namespaces:
+        visualization: true
+      Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /visualization/pomdp_dynamic_rect
+      Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/pomdp_adapt_index
       Name: Marker
       Namespaces:
         visualization: true
@@ -199,62 +264,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /visualization/dwa_cone
+      Marker Topic: /visualization/pomdp_user_cmd
       Name: Marker
       Namespaces:
         visualization: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /visualization/robot_path
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/all_paths_viz
-      Name: MarkerArray
-      Namespaces:
-        Path 0: true
-        Path 1: true
-        Path 2: true
-        Path 3: true
-        Path 4: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /visualization/waypoints
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /visualization/prob_txt
-      Name: MarkerArray
-      Namespaces:
-        visualization: true
-      Queue Size: 100
-      Value: true
-    - Alpha: 1
-      Class: rviz/Polygon
-      Color: 25; 255; 0
-      Enabled: true
-      Name: Polygon
-      Topic: /move_base/local_costmap/footprint
-      Unreliable: false
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /visualization/pomdp_path
-      Name: Marker
-      Namespaces:
-        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
@@ -290,15 +303,15 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 26.47313117980957
+      Distance: 21.872604370117188
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.2441132068634033
-        Y: 2.773998260498047
+        X: -0.6651216745376587
+        Y: -2.554081916809082
         Z: 4.76837158203125e-7
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
@@ -308,15 +321,15 @@ Visualization Manager:
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: XYOrbit (rviz)
-      Yaw: 1.5322086811065674
+      Yaw: 3.1422126293182373
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 759
+  Height: 1025
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000016a0000029dfc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000029d000000c900ffffff000000010000010f00000324fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000324000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a0000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000003fd0000029d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016a000003a7fc0200000005fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000198000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000003a7000000c900ffffff000000010000010f00000324fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000002800000324000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004a00000003efc0100000002fb0000000800540069006d00650000000000000004a0000004f300fffffffb0000000800540069006d00650100000000000004500000000000000000000005cd000003a700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -325,6 +338,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1389
-  X: 187
-  Y: 116
+  Width: 1853
+  X: 67
+  Y: 27

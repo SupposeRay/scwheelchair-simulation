@@ -64,9 +64,9 @@ int main(int argc, char** argv)
     node_handle.getParam("calib_name", calib_name);
     spinner_ = new ros::AsyncSpinner(0);
 
-    x_profile.resize(720, 0.0);
-    y_profile.resize(720, 0.0);
-    profile_count.resize(720, 0);
+    x_profile.resize(72, 0.0);
+    y_profile.resize(72, 0.0);
+    profile_count.resize(72, 0);
 
     raw_subscriber = node_handle.subscribe(raw_data_topic, 1, &rawCallback);
 
@@ -362,7 +362,8 @@ int main(int argc, char** argv)
     int extension_times = 0;
     do
     {
-        loop_count = round(raw_msg.z * 2);
+        loop_count = round(raw_msg.z / 5);
+        loop_count = loop_count == 72 ? 0 : loop_count;
         x_profile[loop_count] += raw_msg.x;
         y_profile[loop_count] += raw_msg.y;
         profile_count[loop_count]++;
@@ -375,7 +376,7 @@ int main(int argc, char** argv)
 
         if (time_duration > 10.0 && it != profile_count.end())
         {
-            std::cout << "Finished 10 secs but angle " << (it - profile_count.begin()) * 0.5 << " is not covered!" << std::endl;
+            std::cout << "Finished 10 secs but angle " << (it - profile_count.begin()) * 5 << " is not covered!" << std::endl;
             std::cout << "Rotate slowly and steady towards that angle for another 5 secs!" << std::endl;
             extension_times++;
         }
@@ -390,7 +391,7 @@ int main(int argc, char** argv)
         x_profile[i] /= static_cast<double>(profile_count[i]);
         y_profile[i] /= static_cast<double>(profile_count[i]);
 
-        data_file << std::setprecision(5) << static_cast<float>(i) / 2 << " ";
+        data_file << std::setprecision(5) << static_cast<float>(i) * 5 << " ";
         data_file << x_profile[i] << " ";
         data_file << y_profile[i] << std::endl;
     }

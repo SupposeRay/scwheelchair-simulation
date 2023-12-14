@@ -33,6 +33,7 @@ std::string calib_name = "joystick_calibration.txt";
 geometry_msgs::Point raw_msg;   // use x & y to store the joystick's raw x & y values, use z to store the raw angle value
 bool raw_received = false;
 geometry_msgs::Point final_data;    // used to publish the calibrated data
+geometry_msgs::Point prev_data;    // used to publish the calibrated data
 
 geometry_msgs::Point front_xtreme;
 geometry_msgs::Point back_xtreme;
@@ -46,6 +47,8 @@ int data_index = 0;
 double x_magnitude = 0;
 double y_magnitude = 0;
 
+float alpha = 0.18; // low pass filter
+
 void rawCallback(const geometry_msgs::Point::ConstPtr &msg_raw)
 {
     raw_msg = *msg_raw;
@@ -56,15 +59,53 @@ void cmd_timerCallback(const ros::TimerEvent &)
 {
     if (raw_received)
     {
-        data_index = round(raw_msg.z * 2);
+        data_index = round(raw_msg.z / 5);
         x_magnitude = x_profile[data_index] - central_point.x;
         y_magnitude = y_profile[data_index] - central_point.y;
 
-        final_data.x = cos(raw_msg.z * M_PI / 180) * linear_scale * raw_msg.x / x_magnitude;
-        final_data.y = sin(raw_msg.z * M_PI / 180) * angular_scale * raw_msg.y / y_magnitude;
+        final_data.x = cos(raw_msg.z * M_PI / 180) * raw_msg.x / x_magnitude;
+        final_data.y = sin(raw_msg.z * M_PI / 180) * raw_msg.y / y_magnitude;
+
+        final_data.x = (1 - alpha) * prev_data.x + alpha * final_data.x;
+        final_data.y = (1 - alpha) * prev_data.y + alpha * final_data.y;
+
+        if (final_data.x > 1)
+        {
+            final_data.x = 1;
+        }
+        else if (final_data.x < -1)
+        {
+            final_data.x = -1;
+        }
+        // else if (final_data.x < 0.1 && final_data.x > -0.1)
+        // {
+        //     final_data.x = 0;
+        // }
+
+        if (final_data.y > 1)
+        {
+            final_data.y = 1;
+        }
+        else if (final_data.y < -1)
+        {
+            final_data.y = -1;
+        }
+	    // else if (final_data.y < 0.1 && final_data.y > -0.1)
+        // {
+        //     final_data.y = 0;
+        // }
+
+        // final_data.x = round(final_data.x * 100) / 100;
+        // final_data.y = round(final_data.y * 100) / 100;
         final_data.z = 0;
 
+        prev_data = final_data;
+
+        final_data.x = round(final_data.x * linear_scale * 100) / 100;
+        final_data.y = round(final_data.y * angular_scale * 100) / 100;
+
         cmd_publisher.publish(final_data);
+        // prev_data = final_data;
     }
     else
     {
@@ -87,8 +128,13 @@ int main(int argc, char** argv)
     node_handle.getParam("linear_scale", linear_scale);
     node_handle.getParam("angular_scale", angular_scale);
 
-    x_profile.resize(720, 0.0);
-    y_profile.resize(720, 0.0);
+    x_profile.resize(72, 0.0);
+    y_profile.resize(72, 0.0);
+
+    final_data.x = 0.0;
+    final_data.y = 0.0;
+    final_data.z = 0.0;
+    prev_data = final_data;
 
     std::cout << "Reading calibration data..." << std::endl;
 
@@ -255,6 +301,7 @@ int main(int argc, char** argv)
     right_xtreme.z = stod(calib_line);
 
     std::cout << "Now reading the whole control space..." << std::endl;
+    std::getline(data_file, calib_line);
 
     int loop_count = 0;
     delimiter = " ";
@@ -276,7 +323,7 @@ int main(int argc, char** argv)
         loop_count++;
     }
 
-    std::cout << "Finish loading the calibration data." << std::endl;
+    std::cout << "Finish loading the calibration data and start to publish calibrated joystick messages." << std::endl;
 
     // std::cout << "Central point: x = " << central_point.x << ", y = " << central_point.y << ", theta = " << central_point.z << std::endl;
     // std::cout << "Frontmost point: x = " << front_xtreme.x << ", y = " << front_xtreme.y << ", theta = " << front_xtreme.z << std::endl;
@@ -286,18 +333,19 @@ int main(int argc, char** argv)
 
     // for (int i = 0; i < x_profile.size(); ++i)
     // {
-    //     if (x_profile[i] != 0)
-    //     {
-    //         std::cout << "Angle = " << static_cast<float>(i) / 2 << ", x = " << x_profile[i] << ", y = " << y_profile[i] << std::endl;
-    //     }
+    //     // if (x_profile[i] != 0)
+    //     // {
+    //     //     std::cout << "Angle = " << static_cast<float>(i) / 2 << ", x = " << x_profile[i] << ", y = " << y_profile[i] << std::endl;
+    //     // }
+    //     std::cout << "Angle = " << static_cast<float>(i) * 5 << ", x = " << x_profile[i] << ", y = " << y_profile[i] << std::endl;
     // }
 
     raw_subscriber = node_handle.subscribe(raw_data_topic, 1, &rawCallback);
-    cmd_publisher = node_handle.advertise<geometry_msgs::Point>("/arduino_joystick", 1, false);
+    cmd_publisher = node_handle.advertise<geometry_msgs::Point>(published_topic, 1, false);
 
     ros::Duration(0.5).sleep();
 
-    cmd_timer = node_handle.createTimer(ros::Duration(0.01), &cmd_timerCallback);
+    cmd_timer = node_handle.createTimer(ros::Duration(0.005), &cmd_timerCallback);
 
     ros::spin();
 

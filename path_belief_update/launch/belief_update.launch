@@ -7,8 +7,8 @@
     <!-- <remap from="/preferred_path_ind" to="/move_base/SharedVoronoiGlobalPlanner/preferred_path_ind" /> -->
     <!-- <remap from="/input_converter/cmd_vel" to="/joy_vel" /> -->
     <!-- <remap from="/joystick" to="/keyboard" /> -->
-    <remap from="/joystick" to="/arduino/joystick" />
-    <!-- <remap from="/odom" to="/odometry/filtered" /> -->
+    <!-- <remap from="/joystick" to="/arduino/joystick" /> -->
+    <remap from="/odom" to="/odometry/filtered" />
 
   </node>
 </launch>

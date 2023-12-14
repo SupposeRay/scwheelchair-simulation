@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 
   shared_DWA::shared_DWANode Shared_DWA(node_handle);
 
-  ros::spin();
+  // ros::spin();
 
   return 0;
 }

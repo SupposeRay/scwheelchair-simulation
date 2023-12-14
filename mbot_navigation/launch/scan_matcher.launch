@@ -1,7 +1,7 @@
 <launch>
   <node pkg="laser_scan_matcher" type="laser_scan_matcher_node" name="scan_matcher" output="screen">
-    <!-- <remap from="/imu/data" to="/imu"/> -->
-    <!-- <remap from="/odom" to="/encoders/odom"/> -->
+    <remap from="/imu/data" to="/imu"/>
+    <remap from="/odom" to="/encoders/odom"/>
     <param name="fixed_frame"         type="string" value="odom"/>
 		<param name="base_frame"          type="string" value="base_footprint"/>
 		<param name="use_imu"             type="bool"   value="false"/>

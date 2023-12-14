@@ -1,6 +1,6 @@
 cmd_vel_topic: "/cmd_vel"
-joystick_topic: "/arduino/joystick"
-odom_topic: "/odom"
+joystick_topic: "/joy_vel"
+odom_topic: "/odometry/filtered"
 weight_topic: "/shared_dwa/user_weight"
 path_id_topic: "/preferred_path_ind"
 base_frame: "base_link"

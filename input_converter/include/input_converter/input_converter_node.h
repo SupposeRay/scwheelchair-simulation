@@ -8,6 +8,7 @@
 #include <string>
 #include <deque>
 #include <numeric>
+// #include <std_msgs/Float32MultiArray.h>
 
 namespace input_converter
 {
@@ -29,8 +30,6 @@ namespace input_converter
         bool readParameters();
         // callback for joystick input
         void joystickCallback(const geometry_msgs::Point &msg_joystick);
-        // callback for keyboard input
-        void keyboardCallback(const geometry_msgs::Point &msg_keyboard);
         // callback for time
         void timerCallback(const ros::TimerEvent&);
 
@@ -44,8 +43,6 @@ namespace input_converter
 
         // joystick message
         geometry_msgs::Point input_joystick;
-        // keyboard message
-        geometry_msgs::Point input_keyboard;
         // ros time
         ros::Time t_now;
         // twist msg to be published
@@ -62,16 +59,11 @@ namespace input_converter
 
         // bool value to check if the specific msg is received
         bool joystick_receive = false;
-        bool keyboard_receive = false;
-        bool joystick_listen = false;
-        bool keyboard_listen = false;
         bool add_filter = false;
 
         // default config parameters
         // publish frequency
         float publish_interval = 0.2;
-        // input source
-        std::string input_source = "Keyboard";
         // filter
         std::string filter_type = "None";
 
@@ -85,7 +77,7 @@ namespace input_converter
         // parameters to scale the maximum linear and angular velocities
         float linear_scale = 0.5;
         float angular_scale = 0.5;
-        // max linear and angular accelerations
+	    // max linear and angular accelerations
         float linear_acc = 1.0;
         float angular_acc = 1.0;
     };

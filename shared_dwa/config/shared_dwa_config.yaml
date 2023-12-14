@@ -1,5 +1,4 @@
-
-publish_interval: 0.01
+publish_interval: 0.1
 # the interval of publishing results    unit: s
 
 algorithm_interval: 0.3
@@ -20,10 +19,10 @@ v_sample: 30
 w_sample: 30
 # number of samples along angular velocity axis in each dynamic window
 
-v_acclrt: 1.0
+v_acclrt: 0.7
 # the absolute linear accleration, must be a positive number   unit: m/s^2  0.8
 
-w_acclrt: 1.0
+w_acclrt: 0.7
 # the absolute angular accleration, must be a positive number   unit: rad/s^2 0.523
 
 v_max_robot: 1.0
@@ -35,10 +34,10 @@ w_max_robot: 1.0
 fixed_frame_id: "map"
 # the world frame id
 
-base_frame_id: "base_footprint"
+base_frame_id: "base_link"
 # the local frame id
 
-footprint_mode: "radius"
+footprint_mode: "rectangle"
 # the footprint mode for collision check
 # options: "radius", "rectangle"
 # "radius": use an envelope circle to represent the footprint of the robot
@@ -56,7 +55,7 @@ weight_cmd: 0.8
 # the values must be non-negative and the sum must be 1
 # when enable_dynamic_weight is true, the weight_cmd is the uppper bound of weight assigned to cmd
 
-rectangle_point: [0.4, 0.5, 0.4, -0.5, -0.9, -0.5, -0.9, 0.5]
+rectangle_point: [1.25, 0.45, 1.25, -0.45, -0.45, -0.45, -0.45, 0.45]
 # when choosing "rectangle" footprint mode, this stands for the coordinates of 4 corner points of the robot
 # the sequence of this list is x1 y1 x2 y2 x3 y3 x4 y4 with a clockwise order in ROS axis frame
 

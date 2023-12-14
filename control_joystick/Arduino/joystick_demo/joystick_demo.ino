@@ -16,7 +16,7 @@ ros::Publisher joy_data("/arduino/joystick", &joy_msg);
 #define joyY A1
 
 void setup() {
- Serial.begin(57600);
+ //Serial.begin(57600);
   nh.initNode();
   nh.advertise(joy_data);
 }
@@ -30,13 +30,13 @@ void loop() {
 
   //joy_msg.angle_Start = xValue;
   //joy_msg.angle_End = yValue;
- float xMax = 615;
- float xMin = 119;
- float xZero = 360;
+ float xMax = 676;
+ float xMin = 419;
+ float xZero = 545;
 
- float yMax = 609;
- float yMin = 108;
- float yZero = 360;
+ float yMax = 679;
+ float yMin = 435;
+ float yZero = 554;
 
  if(xValue > xMax)
  {
@@ -84,17 +84,9 @@ void loop() {
   }
  }
 
-//if (fabs(joy_msg.x) < 0.3)
-//{
-//  joy_msg.x = 0;
-//}
-if (joy_msg.x < 0.1 && joy_msg.x > -0.3)
+if (fabs(joy_msg.x) < 0.3)
 {
   joy_msg.x = 0;
-}
-if (fabs(joy_msg.y) < 0.1)
-{
-  joy_msg.y = 0;
 }
 if (joy_msg.x < 0)
 {

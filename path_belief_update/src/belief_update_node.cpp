@@ -18,11 +18,11 @@ namespace belief_update
         global_subscriber_ = node_handle_.subscribe("/move_base/goal", 1, &belief_updateNode::globalCallback, this);
         if (input_datatype == "point")
         {
-            input_subscriber_ = node_handle_.subscribe("/joystick", 1, &belief_updateNode::pointCallback, this);
+            input_subscriber_ = node_handle_.subscribe("/joystick_calib", 1, &belief_updateNode::pointCallback, this);
         }
         else if (input_datatype == "twist")
         {
-            input_subscriber_ = node_handle_.subscribe("/input_converter/cmd_vel", 1, &belief_updateNode::twistCallback, this);
+            input_subscriber_ = node_handle_.subscribe("/joy_vel", 1, &belief_updateNode::twistCallback, this);
         }
 
         // vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/belief_update/cmd_vel", 1);
@@ -131,8 +131,8 @@ namespace belief_update
         y_cmd = msg_twist.angular.z;
         x_cmd /= x_max;
         y_cmd /= y_max;
-        x_cmd = round(x_cmd * 10) / 10;
-        y_cmd = round(y_cmd * 10) / 10;
+        x_cmd = round(x_cmd * 100) / 100;
+        y_cmd = round(y_cmd * 100) / 100;
         if (x_cmd > 0 || (x_cmd == 0 && y_cmd != 0))
         {
             action_update = true;
@@ -151,8 +151,8 @@ namespace belief_update
         y_cmd = msg_point.y;
         x_cmd /= x_max;
         y_cmd /= y_max;
-        x_cmd = round(x_cmd * 10) / 10;
-        y_cmd = round(y_cmd * 10) / 10;
+        x_cmd = round(x_cmd * 100) / 100;
+        y_cmd = round(y_cmd * 100) / 100;
         if (x_cmd > 0 || (x_cmd == 0 && y_cmd != 0))
         {
             action_update = true;
@@ -198,6 +198,11 @@ namespace belief_update
         }
         else
         {
+            // ROS_INFO_STREAM("Stamp: " << path_list.paths[0].header.stamp);
+            // for (int i = 0; i < path_list.paths.size(); ++i)
+            // {
+            //     ROS_INFO_STREAM("Path " << i + 1 << ", seq = " << path_list.paths[i].header.seq);
+            // }
             path_frame_id = path_list.paths[0].header.frame_id;
             if (belief_goal.size() == 0) // initialization
             {

@@ -1,5 +1,6 @@
 // ROS
 #include <ros/ros.h>
+// #include <signal.h>
 // tf2
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
@@ -257,6 +258,10 @@ namespace shared_DWA
         // how long to block before failing for tf transformation 
         float tf_buffer_timeout = 0.3;
 
+        // ros::Time prev_time;
+        // ros::Time current_time;
+        // ros::Duration time_duration;
+
         geometry_msgs::TransformStamped lidar2baseTransform;
 
         // ROS nodehandle
@@ -285,6 +290,7 @@ namespace shared_DWA
         ros::Publisher footprint_publisher_;
         ros::Timer algo_timer_;
         ros::Timer pub_timer_;
+        ros::AsyncSpinner *dwa_spinner_;
 
         ros::Publisher collision_marker_publisher_;
         visualization_msgs::Marker collision_marker_;

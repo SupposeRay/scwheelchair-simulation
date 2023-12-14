@@ -33,11 +33,12 @@ namespace shared_DWA
             ROS_ERROR_STREAM("Could not load parameters.");
             ros::requestShutdown();
         }
+        dwa_spinner_ = new ros::AsyncSpinner(0);
 
         // Subscribers & Publishers
         scan_subscriber_ = node_handle_.subscribe("/scan", 1, &shared_DWANode::scanCallback, this);
         odom_subscriber_ = node_handle_.subscribe("/odom", 1, &shared_DWANode::odomCallback, this);
-        cmd_subscriber_ = node_handle_.subscribe("/arduino/joystick", 1, &shared_DWANode::cmdCallback, this);
+        cmd_subscriber_ = node_handle_.subscribe("/joystick_calib", 1, &shared_DWANode::cmdCallback, this);
         if (guidance_mode == "goal")
         {
             goal_subscriber_ = node_handle_.subscribe("/goal_distribution", 1, &shared_DWANode::goalCallback, this);
@@ -177,8 +178,17 @@ namespace shared_DWA
         collision_marker_.color.a = 0.5;
         collision_marker_.color.r = 1.0;
         collision_marker_.lifetime = ros::Duration(2 * algorithm_interval);
-    }
 
+        // prev_time = std::chrono::system_clock::now();
+        // current_time = std::chrono::system_clock::now();
+        // prev_time = ros::Time::now();
+        // signal(SIGINT, dwaSigintHandler);
+        // ros::spin();
+        // std::cout << "test" << std::endl;
+        dwa_spinner_->start();
+        ros::Duration(2.0).sleep();
+        ros::waitForShutdown();
+    }
     // Destructor
     shared_DWANode::~shared_DWANode()
     {
@@ -312,6 +322,15 @@ namespace shared_DWA
         return true;
     }
 
+    // void shared_DWANode::dwaSigintHandler(int dwa_sig)
+    // {
+    //     dwa_twist.linear.x = 0;
+    //     dwa_twist.angular.z = 0;
+    //     vel_publisher_.publish(dwa_twist);
+    //     dwa_spinner->stop();
+    //     ros::shutdown();
+    // }
+
     void shared_DWANode::scanCallback(const sensor_msgs::LaserScan &msg_scan)
     {
         tf2_ros::Buffer tf_buffer;
@@ -352,14 +371,18 @@ namespace shared_DWA
 
     void shared_DWANode::odomCallback(const nav_msgs::Odometry &msg_odom)
     {
-        v_agent = msg_odom.twist.twist.linear.x;
-        w_agent = msg_odom.twist.twist.angular.z;
+        v_agent = round(msg_odom.twist.twist.linear.x * 100) / 100;
+        w_agent = round(msg_odom.twist.twist.angular.z * 100) / 100;
     }
 
     void shared_DWANode::cmdCallback(const geometry_msgs::Point &msg_cmd)
     {
-        v_cmd = msg_cmd.x;
-        w_cmd = msg_cmd.y;
+        v_cmd = round(msg_cmd.x * 100) / 100;
+        w_cmd = round(msg_cmd.y * 100) / 100;
+
+        // v_cmd = (fabs(v_cmd) >= 0.05) ? v_cmd : 0;
+        // w_cmd = (fabs(w_cmd) >= 0.05) ? w_cmd : 0;
+
         candidate_samples.header.stamp = ros::Time::now();
         cmd_receive = true;
     }
@@ -455,6 +478,11 @@ namespace shared_DWA
         temp_twist.angular.z = round(temp_twist.angular.z * 1000) / 1000;
         vel_publisher_.publish(temp_twist);
         old_dwa_twist = temp_twist;
+        // current_time = ros::Time::now();
+        // time_duration = current_time - prev_time;
+        // std::cout << "time interval = " << time_duration.toSec() << std::endl;
+        // std::cout << "linear v = " << temp_twist.linear.x << std::endl;
+        // prev_time = current_time;
     }
 
     void shared_DWANode::publishResults()
@@ -914,13 +942,13 @@ namespace shared_DWA
         {
             dwa_twist.linear.x = v_cmd;
             dwa_twist.angular.z = w_cmd;
-            if (v_cmd > 0.2)
+            if (v_cmd > 0.15)
             {
-                dwa_twist.linear.x = 0.2;
+                dwa_twist.linear.x = 0.1;
             }
-            else if (v_cmd < -0.2)
+            else if (v_cmd < -0.15)
             {
-                dwa_twist.linear.x = -0.2;
+                dwa_twist.linear.x = -0.1;
             }
             // dwa_twist.linear.x = (fabs(dwa_twist.linear.x) > 0.2) ? 0.2 : dwa_twist.linear.x;  
             // dwa_twist.angular.z = 0;
