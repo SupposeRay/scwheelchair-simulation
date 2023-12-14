@@ -47,7 +47,6 @@ namespace shared_DWA
         if (guidance_mode == "goal")
         {
             goal_subscriber_ = node_handle_.subscribe("/waypoint_distribution", 1, &shared_DWANode::goalCallback, this);
-            status_subscriber_ = node_handle_.subscribe("/robot_in_inflation", 1, &shared_DWANode::statusCallback, this);
         }
 
         vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/shared_dwa/cmd_vel", 1);
@@ -59,7 +58,6 @@ namespace shared_DWA
         cddt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/path", 1);
         line_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/final_path", 1);
         ucmd_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/user_path", 1);
-        rcmd_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/robot_path", 1);
         wypt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/waypoints", 1);
 
         //Variables are initialized to 0 by default
@@ -97,9 +95,7 @@ namespace shared_DWA
         candidate_samples.scale.x = 0.05;
         candidate_samples.scale.y = 0.05;
         candidate_samples.scale.z = 0.05;
-        candidate_samples.color.r = 1.0;
-        candidate_samples.color.g = 0.75;
-        candidate_samples.color.b = 0.79;
+        candidate_samples.color.g = 1.0;
         candidate_samples.color.a = 0.3;
 
         final_line.header.frame_id = base_frame_id;
@@ -122,21 +118,11 @@ namespace shared_DWA
         user_line.color.b = 1.0;
         user_line.color.a = 1.0;
 
-        robot_line.header.frame_id = base_frame_id;
-        robot_line.ns = "visualization";
-        robot_line.action = visualization_msgs::Marker::ADD;
-        robot_line.pose.orientation.w = 1.0;
-        robot_line.id = 3;
-        robot_line.type = visualization_msgs::Marker::LINE_STRIP;
-        robot_line.scale.x = 0.05;
-        robot_line.color.g = 1.0;
-        robot_line.color.a = 1.0;
-
         waypoint_viz.header.frame_id = base_frame_id;
         waypoint_viz.ns = "visualization";
         waypoint_viz.action = visualization_msgs::Marker::ADD;
         waypoint_viz.pose.orientation.w = 1.0;
-        waypoint_viz.id = 4;
+        waypoint_viz.id = 3;
         waypoint_viz.type = visualization_msgs::Marker::SPHERE_LIST;
         waypoint_viz.scale.x = 0.5;
         waypoint_viz.scale.y = 0.5;
@@ -350,15 +336,8 @@ namespace shared_DWA
 
     void shared_DWANode::goalCallback(const path_belief_update::WaypointDistribution::ConstPtr &msg_goal)
     {
-        waypoint_belief.distribution.clear();
-        waypoint_belief.waypoints.poses.clear();
         waypoint_belief = *msg_goal;
         goal_received = true;
-    }
-
-    void shared_DWANode::statusCallback(const std_msgs::Bool::ConstPtr &msg_status)
-    {
-        inside_inflation = msg_status->data;
     }
 
     void shared_DWANode::timerCallback(const ros::TimerEvent &)
@@ -415,7 +394,6 @@ namespace shared_DWA
             cddt_publisher_.publish(candidate_samples);
             line_publisher_.publish(final_line);
             ucmd_publisher_.publish(user_line);
-            rcmd_publisher_.publish(robot_line);
             wypt_publisher_.publish(waypoint_viz);
         }
 
@@ -423,7 +401,6 @@ namespace shared_DWA
         candidate_samples.points.clear();
         final_line.points.clear();
         user_line.points.clear();
-        robot_line.points.clear();
         waypoint_viz.points.clear();
         dynamic_window.release();
         // path_cost_window.release();
@@ -440,7 +417,7 @@ namespace shared_DWA
         //And generate goal is always called to generate goal to set goal_found before anywhere uses the goal
         // goal_found = false; 
 
-        // goal_received = false;
+        goal_received = false;
     }
 
     bool shared_DWANode::dynamicWindow()
@@ -498,8 +475,6 @@ namespace shared_DWA
             // dist_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
             // angle_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
         }
-        // std::chrono::time_point<std::chrono::system_clock> user_start;
-        // user_start = std::chrono::system_clock::now();
 
         //Split dyanamic window evaluation into threads
         int threads = std::thread::hardware_concurrency();
@@ -534,8 +509,7 @@ namespace shared_DWA
                         float v_dw = v_upper - i * row_increment;
                         float w_dw = w_left - j * col_increment;
                         std::vector<float> angle2goal = goal_yaw;
-                        std::vector<float> min_dist2goal;
-                        min_dist2goal.resize(belief_goal.size(), 100.0);
+                        std::vector<float> min_dist2goal = dist2goal;
                         v_dw = round(v_dw * 1000) / 1000;
                         w_dw = round(w_dw * 1000) / 1000;
 
@@ -565,8 +539,7 @@ namespace shared_DWA
         //Wait for all threads to complete
         for (auto &future : future_vector)
             future.get();
-        // double time_cost = (std::chrono::system_clock::now() - user_start).count() / 1000000000.0;
-        // std::cout << "Time cost " << time_cost << std::endl;
+
         if (enable_visualization)
         {
             for (const auto &samples_vec : candidate_samples_vec)
@@ -1127,11 +1100,11 @@ namespace shared_DWA
 
     void shared_DWANode::selectVelocity()
     {
-        float weight_goal_local, weight_cmd_local, v_optimal_cmd, w_optimal_cmd, v_optimal_path, w_optimal_path;
+        float weight_goal_local, weight_cmd_local;
         cv::Mat cmd_cost_window = weight_heading * heading_window + weight_velocity * velocity_window;
-        // cv::normalize(cmd_cost_window, cmd_cost_window, 0.0, 1.0, cv::NORM_MINMAX);
-        // cv::pow(cmd_cost_window, gamma_cmd, cmd_cost_window);
-        if (goal_found && !inside_inflation && agent_forward && fabs(v_cmd) > 0.2)
+        cv::normalize(cmd_cost_window, cmd_cost_window, 0.0, 1.0, cv::NORM_MINMAX);
+        cv::pow(cmd_cost_window, gamma_cmd, cmd_cost_window);
+        if (goal_found && agent_forward && fabs(v_cmd) > 0.2)
         {
             weight_goal_local = weight_goal;
             weight_cmd_local = weight_cmd;
@@ -1142,7 +1115,7 @@ namespace shared_DWA
                 weight_cmd_local = (weight_cmd_local >= weight_cmd_lb) ? weight_cmd_local : weight_cmd_lb;
                 weight_goal_local = 1 - weight_cmd_local;
             }
-            std::cout << "Weight_goal " << weight_goal_local << std::endl;
+            ROS_INFO_STREAM("Weight_goal " << weight_goal_local);
             cv::Mat path_cost_total;
             path_cost_total.zeros(cost_window.rows, cost_window.cols, CV_32F);
             // whether to use the most likely goal or the expected cost
@@ -1180,37 +1153,8 @@ namespace shared_DWA
             {
                 path_cost_total = shared_DWANode::calPathcost(dist_cost_window[max_index], angle_cost_window[max_index]);
             }
-            // cv::normalize(path_cost_total, path_cost_total, 0.0, 1.0, cv::NORM_MINMAX);
-            // ROS_INFO_STREAM("cmd_cost_window " << cmd_cost_window);
-            // ROS_INFO_STREAM("path_cost_total " << path_cost_total);
-
-            // Get min values of cmd cost and path cost
-            int min_index[2] = {};
-            cv::minMaxIdx(cmd_cost_window, NULL, NULL, min_index, NULL);
-            v_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[0];
-            w_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[1];
-            std::fill( std::begin(min_index), std::end(min_index), 0);
-            cv::minMaxIdx(path_cost_total, NULL, NULL, min_index, NULL);
-            v_optimal_path = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[0];
-            w_optimal_path = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[1];
-
-            // std::cout << "v_optimal_cmd " << v_optimal_cmd << ",w_optimal_cmd " << w_optimal_cmd << std::endl;
-            // std::cout << "v_optimal_path " << v_optimal_path << ",w_optimal_path " << w_optimal_path << std::endl;
-            float v_combined = weight_cmd_local * v_optimal_cmd + weight_goal_local * v_optimal_path;
-            float w_combined = weight_cmd_local * w_optimal_cmd + weight_goal_local * w_optimal_path;
-            // std::cout << "v_combined " << v_combined << ",w_combined " << w_combined << std::endl;
-
-            for (int i = 0; i < v_sample + 1; ++i)
-            {
-                for (int j = 0; j < w_sample + 1; ++j)
-                {
-                    cost_window.at<float>(i, j) = weight_heading * 
-                        shared_DWANode::calHeading(dynamic_window.at<cv::Vec2f>(i, j)[0], dynamic_window.at<cv::Vec2f>(i, j)[1], v_combined, w_combined)
-                        + weight_velocity * 
-                        (v_combined == 0 ? 0 : fabs(dynamic_window.at<cv::Vec2f>(i, j)[0] - v_combined) / fabs(v_combined));
-                }
-            }
-            // cost_window = weight_cmd_local * cmd_cost_window + weight_goal_local * path_cost_total;
+            cv::normalize(path_cost_total, path_cost_total, 0.0, 1.0, cv::NORM_MINMAX);
+            cost_window = weight_cmd_local * cmd_cost_window + weight_goal_local * path_cost_total;
         }
         else
         {
@@ -1247,11 +1191,11 @@ namespace shared_DWA
 
         if (enable_visualization)
         {
-            geometry_msgs::Point final_line_point, user_line_point, robot_line_point;
-            final_line_point.x = user_line_point.x = robot_line_point.x = 0;
-            final_line_point.y = user_line_point.y = robot_line_point.y = 0;
-            final_line_point.z = user_line_point.z = robot_line_point.z = 0;
-            float theta_final = 0, theta_user = 0, theta_robot = 0;
+            geometry_msgs::Point final_line_point, user_line_point;
+            final_line_point.x = user_line_point.x = 0;
+            final_line_point.y = user_line_point.y = 0;
+            final_line_point.z = user_line_point.z = 0;
+            float theta_final = 0, theta_user = 0;
             for (int i = 0; i < sample_number; i++)
             {
                 final_line_point.x += dwa_twist.linear.x * cos(theta_final) * sample_interval;
@@ -1262,10 +1206,6 @@ namespace shared_DWA
                 user_line_point.y += v_cmd * sin(theta_user) * sample_interval;
                 theta_user += w_cmd * sample_interval;
                 user_line.points.push_back(user_line_point);
-                robot_line_point.x += v_optimal_path * cos(theta_robot) * sample_interval;
-                robot_line_point.y += v_optimal_path * sin(theta_robot) * sample_interval;
-                theta_robot += w_optimal_path * sample_interval;
-                robot_line.points.push_back(robot_line_point);
             }
         }
         // ROS_INFO_STREAM("linear " <<  dwa_twist.linear.x << ", angular " << dwa_twist.angular.z);

@@ -27,7 +27,7 @@ bool use_sim_time = false;
 //ROS params
 std::string joystick_topic = "/arduino/joystick";
 std::string cmd_vel_topic = "/cmd_vel";
-std::string odom_topic = "/odom";
+std::string odom_topic = "/odometry/filtered";
 std::string base_frame = "base_link";
 std::string map_frame = "map";
 double frequency = 100;

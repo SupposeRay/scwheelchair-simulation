@@ -134,14 +134,14 @@ plt.ylabel("y-coordinate")
 plt.legend()
 plt.grid(True)
 plt.axis('scaled')
-# def update_points(frame):
-#     point_ani.set_data(user_path_x[frame], user_path_y[frame])
-#     text_pt.set_position((user_path_x[frame], user_path_y[frame]))
-#     text_pt.set_text("time = %.3f"%(user_time[frame]))
-#     return point_ani, text_pt,
-# point_ani, = plt.plot(user_path_x[0], user_path_y[0], "ro")
-# text_pt = plt.text(0, 0, '', fontsize=10)
-# ani = animation.FuncAnimation(path_plot, update_points, np.arange(0, len(user_path_x)), interval= 2, repeat=False, blit=True)
+def update_points(frame):
+    point_ani.set_data(user_path_x[frame], user_path_y[frame])
+    text_pt.set_position((user_path_x[frame], user_path_y[frame]))
+    text_pt.set_text("time = %.3f"%(user_time[frame]))
+    return point_ani, text_pt,
+point_ani, = plt.plot(user_path_x[0], user_path_y[0], "ro")
+text_pt = plt.text(0, 0, '', fontsize=10)
+ani = animation.FuncAnimation(path_plot, update_points, np.arange(0, len(user_path_x)), interval= 2, repeat=False, blit=True)
 # Get average robot linear and angular acceleration
 # robot_acc = np.array([])
 # robot_ang_acc = np.array([])

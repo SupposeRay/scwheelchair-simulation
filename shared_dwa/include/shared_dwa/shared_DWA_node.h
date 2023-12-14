@@ -23,7 +23,6 @@
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <std_msgs/Bool.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalID.h>
@@ -73,8 +72,6 @@ namespace shared_DWA
         void cmdCallback(const geometry_msgs::Twist::ConstPtr &msg_cmd);
         // callback for goal data
         void goalCallback(const path_belief_update::WaypointDistribution::ConstPtr &msg_goal);
-        // callback for status
-        void statusCallback(const std_msgs::Bool::ConstPtr &msg_status);
 
         /**
          * Forward simulate all obstacles that were received by tracker
@@ -193,7 +190,6 @@ namespace shared_DWA
 
         std::vector<geometry_msgs::Point> lidar_points;
         // bool value to check if the specific msg is received
-        bool inside_inflation = false;
         bool cmd_receive = false;
         bool goal_received = false;
         bool global_received = false;
@@ -288,7 +284,6 @@ namespace shared_DWA
         visualization_msgs::Marker candidate_samples;
         visualization_msgs::Marker final_line;
         visualization_msgs::Marker user_line;
-        visualization_msgs::Marker robot_line;
         visualization_msgs::Marker waypoint_viz;
 
         // twist msg to be published
@@ -391,13 +386,11 @@ namespace shared_DWA
         // ros::Subscriber amcl_subscriber_;
         ros::Subscriber cmd_subscriber_;
         ros::Subscriber goal_subscriber_;
-        ros::Subscriber status_subscriber_;
 
         ros::Publisher vel_publisher_;
         ros::Publisher cddt_publisher_;
         ros::Publisher line_publisher_;
         ros::Publisher ucmd_publisher_;
-        ros::Publisher rcmd_publisher_;
         ros::Publisher wypt_publisher_;
         ros::Publisher goal_publisher_;
         ros::Publisher cancel_publisher_;

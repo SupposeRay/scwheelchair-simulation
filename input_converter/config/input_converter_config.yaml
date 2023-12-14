@@ -2,7 +2,7 @@ publish_interval: 0.05
 # the interval of publishing results    unit: s
 
 
-input_source: "Keyboard"
+input_source: "Joystick"
 # the input source
 # options: "Keyboard", "Joystick"
 

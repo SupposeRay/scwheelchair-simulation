@@ -126,11 +126,39 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        camera_depth_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_depth_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        camera_link_pitch:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_roll:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_link_yaw:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_rgb_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        camera_rgb_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         front_caster_link:
           Alpha: 1
           Show Axes: false
@@ -192,7 +220,9 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
+      Max Intensity: 4096
       Min Color: 0; 0; 0
+      Min Intensity: 0
       Name: LaserScan
       Position Transformer: XYZ
       Queue Size: 10
@@ -332,7 +362,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 32; 74; 135
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
       Length: 0.30000001192092896
@@ -350,7 +380,7 @@ Visualization Manager:
       Shaft Length: 0.10000000149011612
       Topic: /move_base/SharedVoronoiGlobalPlanner/plan
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -402,7 +432,7 @@ Visualization Manager:
       Axes Radius: 0.10000000149011612
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
       Name: Pose
@@ -411,39 +441,31 @@ Visualization Manager:
       Shape: Arrow
       Topic: /shared_dwa/goal
       Unreliable: false
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /visualization/user_path
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /visualization/path
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /visualization/robot_path
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /visualization/final_path
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /visualization/waypoints
@@ -454,7 +476,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/voronoi_edges_viz
+      Marker Topic: /shared_voronoi_without_goal/voronoi_edges_viz
       Name: MarkerArray
       Namespaces:
         Lonely Nodes: true
@@ -472,34 +494,37 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /move_base/SharedVoronoiGlobalPlanner/all_paths_viz
+      Marker Topic: /shared_voronoi_without_goal/all_paths_viz
       Name: MarkerArray
       Namespaces:
         Path 0: true
+        Path 0 text: true
         Path 1: true
+        Path 1 text: true
         Path 2: true
+        Path 2 text: true
         Path 3: true
-        Path 4: true
+        Path 3 text: true
       Queue Size: 100
       Value: true
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
-      Enabled: false
+      Enabled: true
       Name: Map
       Topic: /map_dilated
       Unreliable: false
       Use Timestamp: false
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /move_base/SharedVoronoiGlobalPlanner/voronoi_edges_viz
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Image
       Enabled: true
       Image Topic: /camera/rgb/image_raw
@@ -512,14 +537,6 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /visualization/circle
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -542,7 +559,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: -14.140042304992676
+      Angle: -15.720049858093262
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -552,11 +569,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 39.63050842285156
+      Scale: 12.138957977294922
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 7.320192337036133
-      Y: -0.46929073333740234
+      X: 3.4553380012512207
+      Y: -24.286724090576172
     Saved: ~
 Window Geometry:
   Displays:

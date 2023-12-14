@@ -30,13 +30,13 @@ void loop() {
 
   //joy_msg.angle_Start = xValue;
   //joy_msg.angle_End = yValue;
- float xMax = 690;
- float xMin = 422;
- float xZero = 553;
+ float xMax = 713;
+ float xMin = 435;
+ float xZero = 568;
 
- float yMax = 690;
- float yMin = 423;
- float yZero = 550;
+ float yMax = 705;
+ float yMin = 426;
+ float yZero = 559;
 
  if(xValue > xMax)
  {

@@ -1,6 +1,6 @@
 cmd_vel_topic: "/cmd_vel"
-joystick_topic: "/arduino/joystick"
-odom_topic: "/odom"
+joystick_topic: "/joy_vel"
+odom_topic: "/odometry/filtered"
 base_frame: "base_link"
 map_frame: "map"
 frequency: 100

@@ -30,7 +30,7 @@ v_max_robot: 1.5
 w_max_robot: 1.5
 # the physical maximum angular velocity of the robot, must be a positive number    unit: rad/s
 
-v_max_collision: 0.30
+v_max_collision: 0.10
 # the maximum linear velocity of the robot when an obstacle is in robot footprint, must be a positive number    unit: m/s
 
 w_max_collision: 0.15
@@ -49,7 +49,7 @@ footprint_mode: "radius"
 # "rectangle": use 4 corner points to represent the footprint of the robot
 
 # r_collision: 0.3
-r_collision: 0.5
+r_collision: 0.55
 # when choosing "radius" footprint mode, this stands for the radius of the robot
 
 weight_goal: 0.2
@@ -105,5 +105,5 @@ use_dynamic_obstacles: false
 min_clearance_threshold: 0.0
 # sets the minimum clearance required for a velocity pair to be valid
 
-use_expected_cost: true
+use_expected_cost: false
 # whether to use the most likely goal or expected cost
