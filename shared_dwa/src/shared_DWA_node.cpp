@@ -26,46 +26,43 @@ namespace shared_DWA
 {
     // Constructor
     shared_DWANode::shared_DWANode(ros::NodeHandle &node_handle)
-        : node_handle_(node_handle)
+        : node_handle_(node_handle), tf_listener(tf_buffer)
     {
         if (!readParameters())
         {
             ROS_ERROR_STREAM("Could not load parameters.");
             ros::requestShutdown();
         }
-        dwa_spinner_ = new ros::AsyncSpinner(0);
 
         // Subscribers & Publishers
         scan_subscriber_ = node_handle_.subscribe("/scan", 1, &shared_DWANode::scanCallback, this);
         odom_subscriber_ = node_handle_.subscribe("/odom", 1, &shared_DWANode::odomCallback, this);
-        cmd_subscriber_ = node_handle_.subscribe("/joystick_calib", 1, &shared_DWANode::cmdCallback, this);
+
+        if(use_dynamic_obstacles)
+            obstacles_subscriber_ = node_handle_.subscribe("/obstacles", 1, &shared_DWANode::obstaclesCallback, this);
+
+        cmd_subscriber_ = node_handle_.subscribe("/input_converter/cmd_vel", 1, &shared_DWANode::cmdCallback, this);
+
+        //If guidance mode is goal, subscribe to waypoints published from belief node
         if (guidance_mode == "goal")
         {
-            goal_subscriber_ = node_handle_.subscribe("/goal_distribution", 1, &shared_DWANode::goalCallback, this);
-            global_subscriber_ = node_handle_.subscribe("/belief_update/global_goal", 1, &shared_DWANode::globalCallback, this);
+            goal_subscriber_ = node_handle_.subscribe("/waypoint_distribution", 1, &shared_DWANode::goalCallback, this);
+            status_subscriber_ = node_handle_.subscribe("/robot_in_inflation", 1, &shared_DWANode::statusCallback, this);
         }
 
         vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/shared_dwa/cmd_vel", 1);
-        dwa_vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/shared_dwa/pure_dwa_vel", 1);
         // goal_publisher_ = node_handle_.advertise<geometry_msgs::PoseStamped>("/shared_dwa/goal", 1);
         cancel_publisher_ = node_handle_.advertise<actionlib_msgs::GoalID>("/move_base/cancel", 1);
-        algo_timer_ = node_handle_.createTimer(ros::Duration(algorithm_interval), &shared_DWANode::algotimerCallback, this);
-        pub_timer_ = node_handle_.createTimer(ros::Duration(publish_interval), &shared_DWANode::pubtimerCallback, this);
+        timer_ = node_handle_.createTimer(ros::Duration(publish_interval), &shared_DWANode::timerCallback, this);
 
         //Visualization publishers
-        cddt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/dwa_cone", 1);
-        line_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/dwa_final_output", 1);
-        udwa_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/dwa_follow_user", 1);
-        ucmd_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/dwa_user_cmd", 1);
-        rdwa_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/dwa_follow_path", 1);
-        // wypt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/waypoints", 1);
-        text_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("/visualization/prob_txt", 1);
-        // list_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("/visualization/line_namelist", 1);
-        weight_publisher_ = node_handle_.advertise<std_msgs::Float32>("/shared_dwa/user_weight", 1);
-        footprint_publisher_ = node_handle_.advertise<geometry_msgs::PolygonStamped>("/shared_dwa/footprint", 1);
+        cddt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/path", 1);
+        line_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/final_path", 1);
+        ucmd_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/user_path", 1);
+        rcmd_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/robot_path", 1);
+        wypt_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/waypoints", 1);
 
-        collision_marker_publisher_ = node_handle_.advertise<visualization_msgs::Marker>("/visualization/collision_warning", 1);
-
+        //Variables are initialized to 0 by default
         // // initialize the final published twist
         // dwa_twist.linear.x = 0;
         // dwa_twist.linear.y = 0;
@@ -73,10 +70,8 @@ namespace shared_DWA
         // dwa_twist.angular.x = 0;
         // dwa_twist.angular.y = 0;
         // dwa_twist.angular.z = 0;
-        old_dwa_twist.linear.x = 0;
-        old_dwa_twist.angular.z = 0;
-        
-        // // initialize dwa_goal
+
+        // initialize dwa_goal
         // dwa_goal.header.frame_id = base_frame_id;
         // dwa_goal.pose.position.x = 0;
         // dwa_goal.pose.position.y = 0;
@@ -85,6 +80,12 @@ namespace shared_DWA
         // dwa_goal.pose.orientation.y = 0;
         // dwa_goal.pose.orientation.z = 0;
         // dwa_goal.pose.orientation.w = 1;
+
+        // calculate the total sample time
+        // sample_time = std::max(- v_max_robot / v_acclrt, - w_max_robot / w_acclrt);
+
+        // number of samples
+        sample_number = floor((sample_time / sample_interval));
 
         // visualization markers
         candidate_samples.header.frame_id = base_frame_id;
@@ -108,103 +109,53 @@ namespace shared_DWA
         final_line.id = 1;
         final_line.type = visualization_msgs::Marker::LINE_STRIP;
         final_line.scale.x = 0.07;
-        final_line.color.r = 0.5;
-        final_line.color.g = 0.25;
+        final_line.color.r = 1.0;
         final_line.color.a = 1.0;
 
-        udwa_line.header.frame_id = base_frame_id;
-        udwa_line.ns = "visualization";
-        udwa_line.action = visualization_msgs::Marker::ADD;
-        udwa_line.pose.orientation.w = 1.0;
-        udwa_line.id = 2;
-        udwa_line.type = visualization_msgs::Marker::LINE_STRIP;
-        udwa_line.scale.x = 0.05;
-        udwa_line.color.r = 1.0;
-        udwa_line.color.a = 1.0;
-
-        cmd_line.header.frame_id = base_frame_id;
-        cmd_line.ns = "visualization";
-        cmd_line.action = visualization_msgs::Marker::ADD;
-        cmd_line.pose.orientation.w = 1.0;
-        cmd_line.id = 3;
-        cmd_line.type = visualization_msgs::Marker::LINE_STRIP;
-        cmd_line.scale.x = 0.05;
-        cmd_line.color.b = 1.0;
-        cmd_line.color.a = 1.0;
+        user_line.header.frame_id = base_frame_id;
+        user_line.ns = "visualization";
+        user_line.action = visualization_msgs::Marker::ADD;
+        user_line.pose.orientation.w = 1.0;
+        user_line.id = 2;
+        user_line.type = visualization_msgs::Marker::LINE_STRIP;
+        user_line.scale.x = 0.05;
+        user_line.color.b = 1.0;
+        user_line.color.a = 1.0;
 
         robot_line.header.frame_id = base_frame_id;
         robot_line.ns = "visualization";
         robot_line.action = visualization_msgs::Marker::ADD;
         robot_line.pose.orientation.w = 1.0;
-        robot_line.id = 4;
+        robot_line.id = 3;
         robot_line.type = visualization_msgs::Marker::LINE_STRIP;
         robot_line.scale.x = 0.05;
         robot_line.color.g = 1.0;
         robot_line.color.a = 1.0;
 
-        // waypoint_viz.header.frame_id = base_frame_id;
-        // waypoint_viz.ns = "visualization";
-        // waypoint_viz.action = visualization_msgs::Marker::ADD;
-        // waypoint_viz.pose.orientation.w = 1.0;
-        // waypoint_viz.id = 5;
-        // waypoint_viz.type = visualization_msgs::Marker::SPHERE_LIST;
-        // waypoint_viz.scale.x = 0.2;
-        // waypoint_viz.scale.y = 0.2;
-        // waypoint_viz.scale.z = 0.2;
-        // waypoint_viz.color.r = 1.0;
-        // waypoint_viz.color.g = 1.0;
-        // waypoint_viz.color.a = 1.0;
-
-        waypoint_txt.header.frame_id = base_frame_id;
-        waypoint_txt.ns = "visualization";
-        waypoint_txt.action = visualization_msgs::Marker::ADD;
-        waypoint_txt.pose.orientation.w = 1.0;
-        waypoint_txt.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        waypoint_txt.scale.z = 0.5;
-        waypoint_txt.color.r = 0.0;
-        waypoint_txt.color.g = 0.0;
-        waypoint_txt.color.b = 0.0;
-        waypoint_txt.color.a = 1.0;
-
-        collision_marker_.header.frame_id = base_frame_id;
-        collision_marker_.ns = "visualization";
-        collision_marker_.id = 1.0;
-        collision_marker_.type = visualization_msgs::Marker::CUBE;
-        collision_marker_.action = visualization_msgs::Marker::ADD;
-        collision_marker_.pose.orientation.z = 0.25;
-        collision_marker_.scale.x = 0.8;
-        collision_marker_.scale.y = 0.6;
-        collision_marker_.scale.z = 0.5;
-        collision_marker_.color.a = 0.5;
-        collision_marker_.color.r = 1.0;
-        collision_marker_.lifetime = ros::Duration(2 * algorithm_interval);
-
-        // prev_time = std::chrono::system_clock::now();
-        // current_time = std::chrono::system_clock::now();
-        // prev_time = ros::Time::now();
-        // signal(SIGINT, dwaSigintHandler);
-        // ros::spin();
-        // std::cout << "test" << std::endl;
-        dwa_spinner_->start();
-        ros::Duration(2.0).sleep();
-        ros::waitForShutdown();
+        waypoint_viz.header.frame_id = base_frame_id;
+        waypoint_viz.ns = "visualization";
+        waypoint_viz.action = visualization_msgs::Marker::ADD;
+        waypoint_viz.pose.orientation.w = 1.0;
+        waypoint_viz.id = 4;
+        waypoint_viz.type = visualization_msgs::Marker::SPHERE_LIST;
+        waypoint_viz.scale.x = 0.5;
+        waypoint_viz.scale.y = 0.5;
+        waypoint_viz.scale.z = 0.5;
+        waypoint_viz.color.r = 1.0;
+        waypoint_viz.color.b = 1.0;
+        waypoint_viz.color.a = 1.0;
     }
-    // Destructor
-    shared_DWANode::~shared_DWANode()
-    {
-    }
+
     //Public Member Functions
 
     //Private Member Functions
     bool shared_DWANode::readParameters()
     {
         ROS_INFO_STREAM("Loading parameters.....");
-        if (!node_handle_.getParam("algorithm_interval", algorithm_interval))
-            ROS_WARN_STREAM("Parameter algorithm_interval not set. Using default setting: " << algorithm_interval);
         if (!node_handle_.getParam("publish_interval", publish_interval))
             ROS_WARN_STREAM("Parameter publish_interval not set. Using default setting: " << publish_interval);
-        if (!node_handle_.getParam("sample_distance", sample_distance))
-            ROS_WARN_STREAM("Parameter sample_distance not set. Using default setting: " << sample_distance);
+        if (!node_handle_.getParam("sample_interval", sample_interval))
+            ROS_WARN_STREAM("Parameter sample_interval not set. Using default setting: " << sample_interval);
         if (!node_handle_.getParam("sample_time", sample_time))
             ROS_WARN_STREAM("Parameter sample_time not set. Using default setting: " << sample_time);
         if (!node_handle_.getParam("v_sample", v_sample))
@@ -251,67 +202,59 @@ namespace shared_DWA
             ROS_WARN_STREAM("Parameter gamma_cmd not set. Using default setting: " << gamma_cmd);
         if (!node_handle_.getParam("gamma_goal", gamma_goal))
             ROS_WARN_STREAM("Parameter gamma_goal not set. Using default setting: " << gamma_goal);
+        if (!node_handle_.getParam("use_dynamic_obstacles", use_dynamic_obstacles))
+            ROS_WARN_STREAM("Parameter use_dynamic_obstacles not set. Using default setting: " << use_dynamic_obstacles);
         if (!node_handle_.getParam("min_clearance_threshold", min_clearance_threshold))
             ROS_WARN_STREAM("Parameter min_clearance_threshold not set. Using default setting: " << min_clearance_threshold);
+        if (!node_handle_.getParam("v_max_collision", v_max_collision))
+            ROS_WARN_STREAM("Parameter v_max_collision not set. Using default setting: " << v_max_collision);
+        if (!node_handle_.getParam("w_max_collision", w_max_collision))
+            ROS_WARN_STREAM("Parameter w_max_collision not set. Using default setting: " << w_max_collision);
+        if (!node_handle_.getParam("use_expected_cost", use_expected_cost))
+            ROS_WARN_STREAM("Parameter use_expected_cost not set. Using default setting: " << use_expected_cost);
+
+        //Footprint checking and processing
         if (footprint_mode == "radius")
         {
             if (!node_handle_.getParam("r_collision", r_collision))
-            {
                 ROS_WARN_STREAM("Parameter r_collision not set. Using default setting: " << r_collision);
-            }
-            geometry_msgs::Point32 circle_point;
-            for (int i = 0; i < 18; ++i)
-            {
-                circle_point.x = r_collision * cos(i * M_PI / 9);
-                circle_point.y = r_collision * sin(i * M_PI / 9);
-                footprint_polygon.polygon.points.push_back(circle_point);
-                footprint_polygon.header.frame_id = base_frame_id;
-            }
         }
+
         else if (footprint_mode == "rectangle")
         {
             rectangle_point.clear();
             std::vector<float> temp_list;
-            geometry_msgs::Point32 temp_point;
+            cv::Point2f temp_point;
             if (node_handle_.getParam("rectangle_point", temp_list))
             {
-                for (int i = 0; i < temp_list.size(); i = i + 2)
+                for (int i = 0; i < temp_list.size(); i += 2)
                 {
                     temp_point.x = temp_list[i];
                     temp_point.y = temp_list[i + 1];
                     rectangle_point.push_back(temp_point);
-                    footprint_polygon.polygon.points.push_back(temp_point);
-                    footprint_polygon.header.frame_id = base_frame_id;
                 }
             }
+
             else
             {
                 ROS_WARN_STREAM("Rectangle footprint not set, use default radius instead. Radius: " << r_collision);
                 footprint_mode = "radius";
-                geometry_msgs::Point32 circle_point;
-                for (int i = 0; i < 18; ++i)
-                {
-                    circle_point.x = r_collision * cos(i * M_PI / 9);
-                    circle_point.y = r_collision * sin(i * M_PI / 9);
-                    footprint_polygon.polygon.points.push_back(circle_point);
-                    footprint_polygon.header.frame_id = base_frame_id;
-                }
             }
         }
+
         else
         {
             ROS_ERROR_STREAM("The selected footprint_mode is not supported, please refer to the options in config file!");
             return false;
         }
 
+        //Guidance mode checking
         if (guidance_mode == "disable")
-        {
             ROS_INFO_STREAM("Guidance mode disabled.");
-        }
+
         else if (guidance_mode == "goal")
-        {
             ROS_INFO_STREAM("Guidance mode selected to \"goal\".");
-        }
+
         else
         {
             ROS_ERROR_STREAM("The selected guidance_mode is not supported, please refer to the options in config file!");
@@ -322,27 +265,50 @@ namespace shared_DWA
         return true;
     }
 
-    // void shared_DWANode::dwaSigintHandler(int dwa_sig)
-    // {
-    //     dwa_twist.linear.x = 0;
-    //     dwa_twist.angular.z = 0;
-    //     vel_publisher_.publish(dwa_twist);
-    //     dwa_spinner->stop();
-    //     ros::shutdown();
-    // }
-
-    void shared_DWANode::scanCallback(const sensor_msgs::LaserScan &msg_scan)
+    void shared_DWANode::obstaclesCallback(const obstacle_detector::Obstacles::ConstPtr &msg)
     {
-        tf2_ros::Buffer tf_buffer;
-        tf2_ros::TransformListener tf_listener(tf_buffer);
+        //Copy all segment obstacles
+        segment_obstacles = msg->segments;
 
+        //Copy all circle obstacles
+        circle_obstacles = msg->circles;
+
+        //Convert all obstacles to base_frame if not in base frame
+        geometry_msgs::TransformStamped odomToBaseTF;
+        if (msg->header.frame_id != base_frame_id)
+        {
+            try
+            {
+                odomToBaseTF = tf_buffer.lookupTransform(base_frame_id, msg->header.frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
+    }
+            catch (tf2::TransformException &Exception)
+            {
+                ROS_ERROR_STREAM(Exception.what());
+    }
+
+            for(auto & segment : segment_obstacles)
+            {
+                tf2::doTransform<geometry_msgs::Point>(segment.first_point, segment.first_point, odomToBaseTF);
+                tf2::doTransform<geometry_msgs::Point>(segment.last_point, segment.last_point, odomToBaseTF);
+    }
+
+            for(auto & circle : circle_obstacles)
+            {
+                tf2::doTransform<geometry_msgs::Vector3>(circle.velocity, circle.velocity, odomToBaseTF);
+                tf2::doTransform<geometry_msgs::Point>(circle.center, circle.center, odomToBaseTF);
+            }
+        }
+    }
+
+    void shared_DWANode::scanCallback(const sensor_msgs::LaserScan::ConstPtr &msg_scan)
+    {
         //Get static transform from lidar to base_link in case they are not in the same frame
-        if (lidar2baseTransform.header.frame_id != base_frame_id && msg_scan.header.frame_id != base_frame_id)
+        if (lidar2baseTransform.header.frame_id != base_frame_id && msg_scan->header.frame_id != base_frame_id)
         {
             ROS_INFO("LIDAR is not in base link frame and transform has not been found yet, finding transform");
             try
             {
-                lidar2baseTransform = tf_buffer.lookupTransform(base_frame_id, msg_scan.header.frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
+                lidar2baseTransform = tf_buffer.lookupTransform(base_frame_id, msg_scan->header.frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
                 ROS_INFO("Transform found, all future scans received by shared_dwa will be transformed before being used for collision checking");
             }
             catch (tf2::TransformException &Exception)
@@ -353,64 +319,59 @@ namespace shared_DWA
         }
 
         lidar_points.clear();
-        lidar_points.reserve(msg_scan.ranges.size());
-        for (int k = 0; k < msg_scan.ranges.size(); ++k)
+        lidar_points.reserve(msg_scan->ranges.size());
+        for (int k = 0; k < msg_scan->ranges.size(); ++k)
         {
-            auto calLidarStart = std::chrono::system_clock::now();
             geometry_msgs::Point temp_point;
-            temp_point.x = msg_scan.ranges[k] * cos(msg_scan.angle_min + k * msg_scan.angle_increment);
-            temp_point.y = msg_scan.ranges[k] * sin(msg_scan.angle_min + k * msg_scan.angle_increment);
+            temp_point.x = msg_scan->ranges[k] * cos(msg_scan->angle_min + k * msg_scan->angle_increment);
+            temp_point.y = msg_scan->ranges[k] * sin(msg_scan->angle_min + k * msg_scan->angle_increment);
 
             //If transform header is not empty
-            auto transformStart = std::chrono::system_clock::now();
             if (!lidar2baseTransform.header.frame_id.empty())
                 tf2::doTransform<geometry_msgs::Point>(temp_point, temp_point, lidar2baseTransform);
+
             lidar_points.emplace_back(std::move(temp_point));
         }
     }
 
-    void shared_DWANode::odomCallback(const nav_msgs::Odometry &msg_odom)
+    void shared_DWANode::odomCallback(const nav_msgs::Odometry::ConstPtr &msg_odom)
     {
-        v_agent = round(msg_odom.twist.twist.linear.x * 100) / 100;
-        w_agent = round(msg_odom.twist.twist.angular.z * 100) / 100;
+        v_agent = msg_odom->twist.twist.linear.x;
+        w_agent = msg_odom->twist.twist.angular.z;
     }
 
-    void shared_DWANode::cmdCallback(const geometry_msgs::Point &msg_cmd)
+    void shared_DWANode::cmdCallback(const geometry_msgs::Twist::ConstPtr &msg_cmd)
     {
-        v_cmd = round(msg_cmd.x * 100) / 100;
-        w_cmd = round(msg_cmd.y * 100) / 100;
-
-        // v_cmd = (fabs(v_cmd) >= 0.05) ? v_cmd : 0;
-        // w_cmd = (fabs(w_cmd) >= 0.05) ? w_cmd : 0;
-
+        v_cmd = msg_cmd->linear.x;
+        w_cmd = msg_cmd->angular.z;
         candidate_samples.header.stamp = ros::Time::now();
         cmd_receive = true;
     }
 
-    void shared_DWANode::goalCallback(const geometry_msgs::PoseArray &msg_goal)
+    void shared_DWANode::goalCallback(const path_belief_update::WaypointDistribution::ConstPtr &msg_goal)
     {
-        goal_data.poses.clear();
-        goal_data = msg_goal;
-        goal_receive = true;
+        waypoint_belief.distribution.clear();
+        waypoint_belief.waypoints.poses.clear();
+        waypoint_belief = *msg_goal;
+        goal_received = true;
     }
 
-    void shared_DWANode::globalCallback(const geometry_msgs::Pose &msg_global)
+    void shared_DWANode::statusCallback(const std_msgs::Bool::ConstPtr &msg_status)
     {
-        global_goal = msg_global;
-        global_receive = true;
+        inside_inflation = msg_status->data;
     }
 
-    void shared_DWANode::algotimerCallback(const ros::TimerEvent &)
+    void shared_DWANode::timerCallback(const ros::TimerEvent &)
     {
-        if(cmd_receive)
+        if (cmd_receive)
         {
             if (guidance_mode == "goal")
             {
                 //Goal receive is always true after first time
-                if (goal_receive)
-                {
-                    goal_found = shared_DWANode::generateGoal();
-                }
+                if (goal_received)
+                    goal_found = shared_DWANode::generateGoal(waypoint_belief);
+                else
+                    goal_found = false;
             }
 
             //If no joystick input
@@ -418,8 +379,6 @@ namespace shared_DWA
             {
                 dwa_twist.linear.x = 0;
                 dwa_twist.angular.z = 0;
-                pure_dwa_twist.linear.x = 0;
-                pure_dwa_twist.angular.z = 0;
             }
 
             else
@@ -431,91 +390,48 @@ namespace shared_DWA
                 else
                     w_max = w_max_robot;
 
-                if(!shared_DWANode::dynamicWindow())
+                //Generate dynamic window
+                if (!shared_DWANode::dynamicWindow())
                 {
                     ROS_ERROR_STREAM("Error! Dynamic window is not generated.");
                     return;
                 }
                 else
                 {
-                    shared_DWANode::checkDestination();
                     shared_DWANode::selectVelocity();
                 }
             }
 
             shared_DWANode::publishResults();
-            pub_dwa_twist = dwa_twist;
         }
-    }
-
-    void shared_DWANode::pubtimerCallback(const ros::TimerEvent &)
-    {
-        geometry_msgs::Twist temp_twist = pub_dwa_twist;
-        if (fabs(pub_dwa_twist.linear.x - old_dwa_twist.linear.x) > publish_interval * v_acclrt)
-        {
-            if (pub_dwa_twist.linear.x  > old_dwa_twist.linear.x)
-            {
-                temp_twist.linear.x = old_dwa_twist.linear.x + publish_interval * v_acclrt;
-            }
-            else
-            {
-                temp_twist.linear.x = old_dwa_twist.linear.x - publish_interval * v_acclrt;
-            }
-        }
-        
-        if (fabs(pub_dwa_twist.angular.z - old_dwa_twist.angular.z) > publish_interval * w_acclrt)
-        {
-            if (pub_dwa_twist.angular.z  > old_dwa_twist.angular.z)
-            {
-                temp_twist.angular.z = old_dwa_twist.angular.z + publish_interval * w_acclrt;
-            }
-            else
-            {
-                temp_twist.angular.z = old_dwa_twist.angular.z - publish_interval * w_acclrt;
-            }
-        }
-        temp_twist.linear.x = round(temp_twist.linear.x * 1000) / 1000;
-        temp_twist.angular.z = round(temp_twist.angular.z * 1000) / 1000;
-        vel_publisher_.publish(temp_twist);
-        old_dwa_twist = temp_twist;
-        // current_time = ros::Time::now();
-        // time_duration = current_time - prev_time;
-        // std::cout << "time interval = " << time_duration.toSec() << std::endl;
-        // std::cout << "linear v = " << temp_twist.linear.x << std::endl;
-        // prev_time = current_time;
     }
 
     void shared_DWANode::publishResults()
     {
-        dwa_vel_publisher_.publish(pure_dwa_twist);
-        weight_publisher_.publish(final_cmd_weight);
+        vel_publisher_.publish(dwa_twist);
+        // goal_publisher_.publish(dwa_goal);
         if (enable_visualization)
         {
             cddt_publisher_.publish(candidate_samples);
             line_publisher_.publish(final_line);
-            udwa_publisher_.publish(udwa_line);
-            ucmd_publisher_.publish(cmd_line);
-            rdwa_publisher_.publish(robot_line);
-            // wypt_publisher_.publish(waypoint_viz);
-            text_publisher_.publish(waypoint_prob);
-            // list_publisher_.publish(line_namelist);
-            footprint_publisher_.publish(footprint_polygon);
+            ucmd_publisher_.publish(user_line);
+            rcmd_publisher_.publish(robot_line);
+            wypt_publisher_.publish(waypoint_viz);
         }
-        // if(dwa_goal.header.frame_id != "")
-        //     goal_publisher_.publish(dwa_goal);
 
+        //Reset all containers
         candidate_samples.points.clear();
         final_line.points.clear();
-        udwa_line.points.clear();
-        cmd_line.points.clear();
+        user_line.points.clear();
         robot_line.points.clear();
-        // waypoint_viz.points.clear();
-        waypoint_prob.markers.clear();
-        // line_namelist.markers.clear();
+        waypoint_viz.points.clear();
         dynamic_window.release();
-        path_cost_window.release();
-        dist_cost_window.release();
-        angle_cost_window.release();
+        // path_cost_window.release();
+        // dist_cost_window.release();
+        // angle_cost_window.release();
+        path_cost_window.clear();
+        dist_cost_window.clear();
+        angle_cost_window.clear();
         clearance_window.release();
         heading_window.release();
         velocity_window.release();
@@ -524,28 +440,15 @@ namespace shared_DWA
         //And generate goal is always called to generate goal to set goal_found before anywhere uses the goal
         // goal_found = false; 
 
-        // goal_receive = false;
-    }
-
-    void shared_DWANode::checkDestination()
-    {
-        if (global_receive)
-        {
-            float dist2global = shared_DWANode::calDistance(0, 0, global_goal.position.x, global_goal.position.y);
-            // ROS_INFO_STREAM("dist2global " << dist2global);
-            // ROS_INFO_STREAM("min_dist2global " << min_dist2global);
-            if (dist2global <= 1.5 || min_dist2global <= 0.5)
-            {
-                cancel_publisher_.publish(dummy_ID);
-                global_receive = false;
-                min_dist2global = 100;
-                // ROS_INFO_STREAM("move_base canceling.");
-            }
-        }
+        // goal_received = false;
     }
 
     bool shared_DWANode::dynamicWindow()
     {
+        //Forward simulate all moving obstacles n (sample_number) times into the future, shape of vector is obstacles[i][n] where i = sample time step, n = circular obstacles
+        forward_sim_obs = forwardSimulateObstacles(circle_obstacles, sample_number, sample_interval);
+
+        //Limit agent velocity
         v_agent = std::max(std::min(v_max_robot, v_agent), -v_max_robot);
         w_agent = std::max(std::min(w_max_robot, w_agent), -w_max_robot);
 
@@ -585,22 +488,30 @@ namespace shared_DWA
         // goal_based navigation
         if (goal_found)
         {
-            path_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
-            dist_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
-            angle_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
+            for (int i = 0; i < belief_goal.size(); i++)
+            {
+                path_cost_window.push_back(cv::Mat(v_sample + 1, w_sample + 1, CV_32F));
+                dist_cost_window.push_back(cv::Mat(v_sample + 1, w_sample + 1, CV_32F));
+                angle_cost_window.push_back(cv::Mat(v_sample + 1, w_sample + 1, CV_32F));
+            }
+            // path_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
+            // dist_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
+            // angle_cost_window.create(v_sample + 1, w_sample + 1, CV_32F);
         }
+        // std::chrono::time_point<std::chrono::system_clock> user_start;
+        // user_start = std::chrono::system_clock::now();
 
         //Split dyanamic window evaluation into threads
         int threads = std::thread::hardware_concurrency();
         //Limit number of threads to v_sample
-        if(threads > v_sample)
+        if (threads > v_sample)
             threads = v_sample;
 
         //Create containers for async futures and visualization markers
         std::vector<std::future<void>> future_vector;
         std::vector<std::vector<geometry_msgs::Point>> candidate_samples_vec(threads);
         future_vector.reserve(threads);
-        int v_samples_per_thread = round(static_cast<float>(v_sample) / threads);
+        int v_samples_per_thread = v_sample / threads;
 
         //Start threads with async lambda function
         //Each thread accesses a different part of all the windows, therefore no thread-safe mechanisms are required to prevent race conditions
@@ -613,7 +524,7 @@ namespace shared_DWA
                 int end = start + v_samples_per_thread;
 
                 //Last thread to take up all remainder samples
-                if(k == threads - 1)
+                if (k == threads - 1)
                     end = v_sample + 1;
 
                 for (int i = start; i < end; ++i)
@@ -622,8 +533,9 @@ namespace shared_DWA
                     {
                         float v_dw = v_upper - i * row_increment;
                         float w_dw = w_left - j * col_increment;
-                        float angle2goal = goal_yaw;
-                        float min_dist2goal = calDistance(0, 0, dwa_goal.pose.position.x, dwa_goal.pose.position.y);
+                        std::vector<float> angle2goal = goal_yaw;
+                        std::vector<float> min_dist2goal;
+                        min_dist2goal.resize(belief_goal.size(), 100.0);
                         v_dw = round(v_dw * 1000) / 1000;
                         w_dw = round(w_dw * 1000) / 1000;
 
@@ -633,8 +545,11 @@ namespace shared_DWA
                         clearance_window.at<float>(i, j) = shared_DWANode::calDist2Collision(v_dw, w_dw, min_dist2goal, angle2goal, candidate_samples_vec[k]);
                         if (goal_found)
                         {
-                            dist_cost_window.at<float>(i, j) = min_dist2goal;
-                            angle_cost_window.at<float>(i, j) = angle2goal;
+                            for (int l = 0; l < belief_goal.size(); l++)
+                            {
+                                dist_cost_window[l].at<float>(i, j) = min_dist2goal[l];
+                                angle_cost_window[l].at<float>(i, j) = angle2goal[l];
+                            }
                         }
                         heading_window.at<float>(i, j) = shared_DWANode::calHeading(v_dw, w_dw, v_cmd, w_cmd);
 
@@ -648,79 +563,92 @@ namespace shared_DWA
         }
 
         //Wait for all threads to complete
-        for(auto & future : future_vector)
+        for (auto &future : future_vector)
             future.get();
-
-        if(enable_visualization)
+        // double time_cost = (std::chrono::system_clock::now() - user_start).count() / 1000000000.0;
+        // std::cout << "Time cost " << time_cost << std::endl;
+        if (enable_visualization)
         {
-            for(const auto & samples_vec : candidate_samples_vec)
+            for (const auto &samples_vec : candidate_samples_vec)
                 candidate_samples.points.insert(candidate_samples.points.end(), samples_vec.begin(), samples_vec.end());
         }
-
-        // ROS_DEBUG_STREAM("Window generated.");
-        // ROS_DEBUG_STREAM("dist_cost_window " << dist_cost_window);
-        // ROS_DEBUG_STREAM("angle_cost_window " << angle_cost_window);
+        // for (int i = 0; i < dist_cost_window.size(); i++)
+        // {
+        //     ROS_INFO_STREAM("dist_cost_window " << i);
+        //     ROS_INFO_STREAM(dist_cost_window[i]);
+        // }
         return true;
     }
 
-    float shared_DWANode::calDist2Collision(float v_dw, float w_dw, float &min_dist2goal, float &angle2goal, std::vector<geometry_msgs::Point>& candidate_points)
+    float shared_DWANode::calDist2Collision(float v_dw, float w_dw, std::vector<float> &min_dist2goal, std::vector<float> &angle2goal, std::vector<geometry_msgs::Point> &candidate_points)
     {
-        //Fixed distance between trajectory projection points, minimum 5 samples
-        double sample_interval = sample_distance / fabs(v_dw);
-        if(sample_time / sample_interval < 5)
-            sample_interval = sample_time / 5;
-        int sample_number = ceil(sample_time / sample_interval);
-
         float dist2collision = 1;
         float x = 0, y = 0, theta = 0;
-        if (v_dw == 0)
+        float sum = 0;
+        int num_points = 0;
+
+        //Check for collision at the current position
+        bool collide_now = use_dynamic_obstacles ? this->checkDynamicCollision(x, y, theta, footprint_mode, 0) : this->checkCollision(x, y, theta, footprint_mode);
+        if(collide_now)
         {
-            theta = w_dw * sample_interval;
-            if (shared_DWANode::checkCollision(0, 0, theta, footprint_mode))
-                dist2collision = 0;
+            //Restrict velocity pairs to low velocity only by setting dist2collision 0 for high vels
+            if(fabs(v_dw) > v_max_collision || fabs(w_dw) > w_max_collision)
+                return 0;
         }
 
-        else
+        for (int i = 0; i < sample_number; ++i)
         {
-            //Handle current robot's position, if collide, return 0
-            if (checkCollision(x, y, theta, footprint_mode))
-                return 0;
-
-            for (int i = 1; i < sample_number; i++)
+            if (w_dw == 0)
             {
-                if (w_dw == 0)
-                {
-                    x += v_dw * cos(theta) * sample_interval;
-                    y += v_dw * sin(theta) * sample_interval;
-                    theta = 0;
-                }
-                else
-                {
-                    x += v_dw / w_dw * (sin(theta + w_dw * sample_interval) - sin(theta));
-                    y += v_dw / w_dw * (cos(theta) - cos(theta + w_dw * sample_interval));
-                    theta += w_dw * sample_interval;
-                }
+                x += v_dw * cos(theta) * sample_interval;
+                y += v_dw * sin(theta) * sample_interval;
+                theta = 0;
+            }
+            else
+            {
+                x += v_dw / w_dw * (sin(theta + w_dw * sample_interval) - sin(theta));
+                y += v_dw / w_dw * (cos(theta) - cos(theta + w_dw * sample_interval));
+                theta += w_dw * sample_interval;
+            }
 
-                //Check only if the time exceeds collision_check_interval, and last point
-                if (checkCollision(x, y, theta, footprint_mode))
+            //Special case cost calculation if obstacle is in current position
+            if(collide_now)
+            {
+                if(use_dynamic_obstacles)
+                    calcDynamicObsInterference(x, y, theta, footprint_mode, i, sum, num_points);
+
+                else
+                    calcObsInterference(x, y, theta, footprint_mode, sum, num_points);
+            }
+
+            //Normal collision checking if there are no obstacles in current position
+            else
+            {
+                //If collision happens at this forward simulated position
+                bool collide = use_dynamic_obstacles ? this->checkDynamicCollision(x, y, theta, footprint_mode, i) : this->checkCollision(x, y, theta, footprint_mode);
+                if (collide)
                 {
                     float linear_dist = (i + 1) * sample_interval * v_dw;
                     float angular_dist = (i + 1) * sample_interval * w_dw;
                     float v_collision = sqrt(2 * fabs(v_acclrt) * fabs(linear_dist));
                     float w_collision = sqrt(2 * fabs(w_acclrt) * fabs(angular_dist));
+
+                    //If velocity pair exceeds max velocity allowed before collision, set dist2collision to 0
                     if (fabs(v_dw) >= v_collision || (w_dw != 0 && fabs(w_dw) >= w_collision))
-                    {
                         dist2collision = 0;
-                    }
+
+                    //Calculate number of intervals that are clear from collision 
+                    //If sample number is 3, there are 3 samples and 2 intervals. 
+                    //If sample 1 (index 0) collides, then num intervals clear = 0, clearance = 0%
+                    //If sample 2 (index 1) collides, then num intervals clear = 1, clearance = 1/(samples - 1) = 50%
+                    //If sample 3 (index 2) collides, then num intervals clear = 2, clearance = 100%
                     else
-                    {
                         dist2collision = i / (static_cast<float>(sample_number) - 1);
-                    }
 
                     break;
                 }
 
-                if(enable_visualization)
+                if (enable_visualization)
                 {
                     geometry_msgs::Point point_candidate;
                     point_candidate.x = x;
@@ -732,29 +660,212 @@ namespace shared_DWA
                 // goal_based navigation
                 if (goal_found)
                 {
-                    float temp_dist2goal = calDistance(x, y, dwa_goal.pose.position.x, dwa_goal.pose.position.y);
-                    // temp_dist2goal = (temp_dist2goal >= 0.2) ? temp_dist2goal : 0.2;
-                    if (temp_dist2goal <= min_dist2goal)
+                    for (int j = 0; j < belief_goal.size(); j++)
                     {
-                        min_dist2goal = temp_dist2goal;
-                        angle2goal = fabs(theta - goal_yaw);
+                        float temp_dist2goal = calDistance(x, y, goal_list.poses[j].position.x, goal_list.poses[j].position.y);
+                        // temp_dist2goal = (temp_dist2goal >= 0.2) ? temp_dist2goal : 0.2;
+                        if (temp_dist2goal <= min_dist2goal[j])
+                        {
+                            min_dist2goal[j] = temp_dist2goal;
+                            angle2goal[j] = fabs(theta - goal_yaw[j]);
+                        }
                     }
                 }
-                if (global_receive)
+
+                if (global_received)
                 {
                     float temp_dist2global = calDistance(x, y, global_goal.position.x, global_goal.position.y);
                     if (temp_dist2global <= min_dist2global)
-                    {
                         min_dist2global = temp_dist2global;
+                }
+            }
+        }
+
+        if(collide_now)
+            return sum/num_points;
+
+        return dist2collision;
+    }
+
+    void shared_DWANode::calcDynamicObsInterference(float x_check, float y_check, float theta_check, const std::string &footprint_mode, int current_sample, float &sum, int &num_points)
+    {
+        std::vector<cv::Point2f> vertices(4, cv::Point2f(0, 0));
+        cv::Vec2f AB, BC;
+        //Calculate the 2 perpendicular sides of robot rotated to current heading
+        if (footprint_mode == "rectangle")
+        {
+            double cos_scale = cos(theta_check), sin_scale = sin(theta_check);
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                vertices[i].x = x_check + rectangle_point[i].x * cos_scale - rectangle_point[i].y * sin_scale;
+                vertices[i].y = y_check + rectangle_point[i].y * cos_scale + rectangle_point[i].x * sin_scale;
+            }
+
+            AB = cv::Vec2f(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y);
+            BC = cv::Vec2f(vertices[2].x - vertices[1].x, vertices[2].y - vertices[1].y);
+        }
+
+        //Check through all line segments
+        double squared_r_collision = pow(r_collision, 2);
+        for (const auto &seg : segment_obstacles)
+        {
+            if (footprint_mode == "radius")
+            {
+                //Check if min distance of footprint center to line segment < radius
+                double projection_dist = minDistPointToSegment(cv::Vec2f(seg.first_point.x, seg.first_point.y),
+                                                               cv::Vec2f(seg.last_point.x, seg.last_point.y),
+                                                               cv::Vec2f(x_check, y_check));
+
+                if (projection_dist <= r_collision)
+                {
+                    num_points++;
+                    sum += projection_dist;
+                }
+            }
+
+            else if (footprint_mode == "rectangle")
+            {
+                for (int i = 0; i < vertices.size(); ++i)
+                {
+                    if(doIntersect(vertices[i], vertices[(i + 1) % 4], cv::Point2f(seg.first_point.x, seg.first_point.y), cv::Point2f(seg.last_point.x, seg.last_point.y)))
+                    {
+                        //If line segment intersects, find the closest distance between center of robot and line segment obstacle
+                        double projection_dist = minDistPointToSegment(cv::Vec2f(seg.first_point.x, seg.first_point.y),
+                                                                    cv::Vec2f(seg.last_point.x, seg.last_point.y),
+                                                                    cv::Vec2f(x_check, y_check));
+                        num_points++;
+                        sum += projection_dist;
                     }
                 }
             }
         }
 
-        return dist2collision;
+        //Check through all circle obstacles that were forward simulated
+        if (current_sample < forward_sim_obs.size())
+        {
+            for (const auto &obs : forward_sim_obs[current_sample])
+            {
+                if (footprint_mode == "radius")
+                {
+                    //Check if centers of circles are less or equal total radius
+                    //TODO: Change offset to be rosparam
+                    float dist = calDistance(x_check, y_check, obs.center.x, obs.center.y);
+                    if (dist <= r_collision + obs.true_radius + 0.2)
+                    {
+                        sum += dist;
+                        num_points++;
+                    }
+                }
+
+                else if (footprint_mode == "rectangle")
+                {
+                    //Checks if center of obstacle lies inside the footprint
+                    float dotABAB = calDotproduct(AB, AB); //squared magnitude of AB
+                    float dotBCBC = calDotproduct(BC, BC); //squared magnitude of BC
+
+                    cv::Point2f M(obs.center.x, obs.center.y);
+
+                    cv::Vec2f AM(M.x - vertices[0].x, M.y - vertices[0].y);
+                    cv::Vec2f BM(M.x - vertices[1].x, M.y - vertices[1].y);
+
+                    float dotABAM = calDotproduct(AB, AM);
+                    float dotBCBM = calDotproduct(BC, BM);
+
+                    //Center of circle obstacle lies in rectangular footprint, get distance between the 2 centers
+                    if (0 <= dotABAM && dotABAM <= dotABAB && 0 <= dotBCBM && dotBCBM <= dotBCBC)
+                    {
+                        float dist = calDistance(x_check, y_check, obs.center.x, obs.center.y);
+                        sum += dist;
+                        num_points++;
+                    }
+
+                    //Checks if obstacle intersects perimeter of footprint
+                    for (int i = 0; i < vertices.size(); ++i)
+                    {
+                        double projection_dist = minDistPointToSegment(cv::Vec2f(vertices[i].x, vertices[i].y),
+                                                                       cv::Vec2f(vertices[(i + 1) % 4].x, vertices[(i + 1) % 4].y),
+                                                                       cv::Vec2f(obs.center.x, obs.center.y));
+                                                                       
+                        if (projection_dist <= obs.true_radius)
+                        {
+                            float dist = calDistance(x_check, y_check, obs.center.x, obs.center.y);
+                            sum += dist;
+                            num_points++;
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    bool shared_DWANode::checkCollision(float x_check, float y_check, float theta_check, std::string footprint_mode)
+    void shared_DWANode::calcObsInterference(float x_check, float y_check, float theta_check, const std::string &footprint_mode, float &sum, int &num_points)
+    {
+        if (footprint_mode == "radius")
+        {
+            for (const auto &point : lidar_points)
+            {
+                //https://stackoverflow.com/a/7227057
+                //Check through easy conditions first, getting distance with sqrt is computationally expensive
+                double dx = fabs(point.x - x_check);
+                double dy = fabs(point.y - y_check);
+
+                if (dx > r_collision || dy > r_collision)
+                    continue;
+
+                if (dx + dy <= r_collision || sqrtf(powf(dx, 2) + powf(dy, 2)) <= r_collision)
+                {
+                    sum += powf(dx, 2) + powf(dy, 2);
+                    num_points++;
+                }
+            }
+            return;
+        }
+
+        else if (footprint_mode == "rectangle")
+        {
+            // https://math.stackexchange.com/a/190373
+            cv::Point2f A(0, 0), B(0, 0), C(0, 0), M(0, 0);
+            double cos_scale = cos(theta_check), sin_scale = sin(theta_check);
+            A.x = x_check + rectangle_point[0].x * cos_scale - rectangle_point[0].y * sin_scale;
+            A.y = y_check + rectangle_point[0].y * cos_scale + rectangle_point[0].x * sin_scale;
+            B.x = x_check + rectangle_point[1].x * cos_scale - rectangle_point[1].y * sin_scale;
+            B.y = y_check + rectangle_point[1].y * cos_scale + rectangle_point[1].x * sin_scale;
+            C.x = x_check + rectangle_point[2].x * cos_scale - rectangle_point[2].y * sin_scale;
+            C.y = y_check + rectangle_point[2].y * cos_scale + rectangle_point[2].x * sin_scale;
+
+            cv::Vec2f AB(B.x - A.x, B.y - A.y);
+            cv::Vec2f BC(C.x - B.x, C.y - B.y);
+
+            float dotABAB = calDotproduct(AB, AB); //squared magnitude of AB
+            float dotBCBC = calDotproduct(BC, BC); //squared magnitude of BC
+
+            for (const auto &point : lidar_points)
+            {
+                M.x = point.x;
+                M.y = point.y;
+
+                cv::Vec2f AM(M.x - A.x, M.y - A.y);
+                cv::Vec2f BM(M.x - B.x, M.y - B.y);
+
+                float dotABAM = calDotproduct(AB, AM);
+                float dotBCBM = calDotproduct(BC, BM);
+
+                if (0 <= dotABAM && dotABAM <= dotABAB && 0 <= dotBCBM && dotBCBM <= dotBCBC)
+                {
+                    sum += powf(x_check - point.x, 2) + powf(y_check - point.y, 2);
+                    num_points++;
+                }
+            }
+            return;
+        }
+        else
+        {
+            ROS_ERROR_STREAM("Not a processible footprint, please either use \"radius\" or \"rectangle\"! ");
+            return;
+        }
+    }
+
+    bool shared_DWANode::checkCollision(float x_check, float y_check, float theta_check, const std::string &footprint_mode)
     {
         if (footprint_mode == "radius")
         {
@@ -777,7 +888,7 @@ namespace shared_DWA
         else if (footprint_mode == "rectangle")
         {
             // https://math.stackexchange.com/a/190373
-            cv::Point2f A(0, 0), B(0, 0), C(0, 0), D(0, 0), M(0, 0);
+            cv::Point2f A(0, 0), B(0, 0), C(0, 0), M(0, 0);
             double cos_scale = cos(theta_check), sin_scale = sin(theta_check);
             A.x = x_check + rectangle_point[0].x * cos_scale - rectangle_point[0].y * sin_scale;
             A.y = y_check + rectangle_point[0].y * cos_scale + rectangle_point[0].x * sin_scale;
@@ -785,14 +896,12 @@ namespace shared_DWA
             B.y = y_check + rectangle_point[1].y * cos_scale + rectangle_point[1].x * sin_scale;
             C.x = x_check + rectangle_point[2].x * cos_scale - rectangle_point[2].y * sin_scale;
             C.y = y_check + rectangle_point[2].y * cos_scale + rectangle_point[2].x * sin_scale;
-            D.x = x_check + rectangle_point[3].x * cos_scale - rectangle_point[3].y * sin_scale;
-            D.y = y_check + rectangle_point[3].y * cos_scale + rectangle_point[3].x * sin_scale;
 
             cv::Vec2f AB(B.x - A.x, B.y - A.y);
-            cv::Vec2f AD(D.x - A.x, D.y - A.y);
+            cv::Vec2f BC(C.x - B.x, C.y - B.y);
 
             float dotABAB = calDotproduct(AB, AB); //squared magnitude of AB
-            float dotADAD = calDotproduct(AD, AD); //squared magnitude of AD
+            float dotBCBC = calDotproduct(BC, BC); //squared magnitude of BC
 
             for (const auto &point : lidar_points)
             {
@@ -800,16 +909,13 @@ namespace shared_DWA
                 M.y = point.y;
 
                 cv::Vec2f AM(M.x - A.x, M.y - A.y);
-                // cv::Vec2f BM(M.x - B.x, M.y - B.y);
+                cv::Vec2f BM(M.x - B.x, M.y - B.y);
 
-                float dotAMAB = calDotproduct(AM, AB);
-                float dotAMAD = calDotproduct(AM, AD);
+                float dotABAM = calDotproduct(AB, AM);
+                float dotBCBM = calDotproduct(BC, BM);
 
-                if (0 <= dotAMAB && dotAMAB <= dotABAB && 0 <= dotAMAD && dotAMAD <= dotADAD)
-                {
+                if (0 <= dotABAM && dotABAM <= dotABAB && 0 <= dotBCBM && dotBCBM <= dotBCBC)
                     return true;
-                    break;
-                }
             }
             return false;
         }
@@ -820,15 +926,170 @@ namespace shared_DWA
         }
     }
 
+    bool shared_DWANode::checkDynamicCollision(float x_check, float y_check, float theta_check, const std::string &footprint_mode, int current_sample)
+    {
+        std::vector<cv::Point2f> vertices(4, cv::Point2f(0, 0));
+        cv::Vec2f AB, BC;
+        if (footprint_mode == "rectangle")
+        {
+            double cos_scale = cos(theta_check), sin_scale = sin(theta_check);
+            for(int i = 0; i < vertices.size(); ++i)
+            {
+                vertices[i].x = x_check + rectangle_point[i].x * cos_scale - rectangle_point[i].y * sin_scale;
+                vertices[i].y = y_check + rectangle_point[i].y * cos_scale + rectangle_point[i].x * sin_scale;
+            }
+
+            AB = cv::Vec2f(vertices[1].x - vertices[0].x, vertices[1].y - vertices[0].y);
+            BC = cv::Vec2f(vertices[2].x - vertices[1].x, vertices[2].y - vertices[1].y);
+        }
+
+        //Check through all line segments
+        double squared_r_collision = pow(r_collision, 2);
+        for (const auto &seg : segment_obstacles)
+        {
+            if (footprint_mode == "radius")
+            {
+                //Check if min distance of footprint center to line segment < radius
+                double projection_dist = minDistPointToSegment(cv::Vec2f(seg.first_point.x, seg.first_point.y),
+                                                               cv::Vec2f(seg.last_point.x, seg.last_point.y),
+                                                               cv::Vec2f(x_check, y_check));
+
+                if (projection_dist <= r_collision)
+                    return true;
+            }
+
+            else if (footprint_mode == "rectangle")
+            {
+                for (int i = 0; i < vertices.size(); ++i)
+                {
+                    if(doIntersect(vertices[i], vertices[(i + 1) % 4], cv::Point2f(seg.first_point.x, seg.first_point.y), cv::Point2f(seg.last_point.x, seg.last_point.y)))
+                        return true;
+                }
+            }
+        }
+
+        //Check through all circle obstacles that were forward simulated
+        if (current_sample < forward_sim_obs.size())
+        {
+            for (const auto &obs : forward_sim_obs[current_sample])
+            {
+                if (footprint_mode == "radius")
+                {
+                    //Check if centers of circles are less or equal total radius
+                    //TODO: Change offset to be rosparam
+                    if (calDistance(x_check, y_check, obs.center.x, obs.center.y) <= r_collision + obs.true_radius + 0.2)
+                        return true;
+                }
+
+                else if (footprint_mode == "rectangle")
+                {
+                    //Checks if center of obstacle lies inside the footprint
+                    float dotABAB = calDotproduct(AB, AB); //squared magnitude of AB
+                    float dotBCBC = calDotproduct(BC, BC); //squared magnitude of BC
+
+                    cv::Point2f M(obs.center.x, obs.center.y);
+
+                    cv::Vec2f AM(M.x - vertices[0].x, M.y - vertices[0].y);
+                    cv::Vec2f BM(M.x - vertices[1].x, M.y - vertices[1].y);
+
+                    float dotABAM = calDotproduct(AB, AM);
+                    float dotBCBM = calDotproduct(BC, BM);
+
+                    if (0 <= dotABAM && dotABAM <= dotABAB && 0 <= dotBCBM && dotBCBM <= dotBCBC)
+                        return true;
+
+                    //Checks if obstacle intersects perimeter of footprint
+                    for (int i = 0; i < vertices.size(); ++i)
+                    {
+                        double projection_dist = minDistPointToSegment(cv::Vec2f(vertices[i].x, vertices[i].y),
+                                                                       cv::Vec2f(vertices[(i + 1) % 4].x, vertices[(i + 1) % 4].y),
+                                                                       cv::Vec2f(obs.center.x, obs.center.y));
+                                                                       
+                        if (projection_dist <= obs.true_radius)
+                            return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     float shared_DWANode::calDistance(float x1, float y1, float x2, float y2)
     {
         return sqrt(powf((x1 - x2), 2) + powf((y1 - y2), 2));
+    }
+
+    float shared_DWANode::squaredDistance(float x1, float y1, float x2, float y2)
+    {
+        return powf((x1 - x2), 2) + powf((y1 - y2), 2);
     }
 
     float shared_DWANode::calDotproduct(cv::Vec2f v1, cv::Vec2f v2)
     {
         return v1[0] * v2[0] + v1[1] * v2[1];
     }
+
+    float shared_DWANode::minDistPointToSegment(const cv::Vec2f &v1, const cv::Vec2f &v2, const cv::Vec2f &p)
+    {
+        //https://stackoverflow.com/a/1501725
+        float l2 = squaredDistance(v1[0], v1[1], v2[0], v2[1]);
+        if (l2 == 0.0)
+            return calDistance(v1[0], v1[1], v2[0], v2[1]);
+
+        float t = std::max((float)0.0, std::min((float)1.0, calDotproduct(p - v1, v2 - v1) / l2));
+        cv::Vec2f projection = v1 + t * (v2 - v1);
+
+        return calDistance(p[0], p[1], projection[0], projection[1]);
+    }
+
+    bool shared_DWANode::onSegment(cv::Point2f p, cv::Point2f q, cv::Point2f r) 
+    { 
+        if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y)) 
+            return true; 
+    
+        return false; 
+    } 
+    
+    int shared_DWANode::orientation(cv::Point2f p, cv::Point2f q, cv::Point2f r) 
+    { 
+        double val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y); 
+
+        // colinear   
+        if (val == 0.0) 
+            return 0;   
+    
+        // clock or counterclock wise 
+        return (val > 0.0) ? 1 : 2;   
+    } 
+    
+    bool shared_DWANode::doIntersect(cv::Point2f p1, cv::Point2f q1, cv::Point2f p2, cv::Point2f q2) 
+    { 
+        // Find the four orientations needed for general and special cases 
+        int o1 = orientation(p1, q1, p2); 
+        int o2 = orientation(p1, q1, q2); 
+        int o3 = orientation(p2, q2, p1); 
+        int o4 = orientation(p2, q2, q1); 
+    
+        // General case 
+        if (o1 != o2 && o3 != o4) 
+            return true; 
+    
+        // Special Cases 
+        // p1, q1 and p2 are colinear and p2 lies on segment p1q1 
+        if (o1 == 0 && onSegment(p1, p2, q1)) return true; 
+    
+        // p1, q1 and q2 are colinear and q2 lies on segment p1q1 
+        if (o2 == 0 && onSegment(p1, q2, q1)) return true; 
+    
+        // p2, q2 and p1 are colinear and p1 lies on segment p2q2 
+        if (o3 == 0 && onSegment(p2, p1, q2)) return true; 
+    
+        // p2, q2 and q1 are colinear and q1 lies on segment p2q2 
+        if (o4 == 0 && onSegment(p2, q1, q2)) return true; 
+    
+        return false; // Doesn't fall in any of the above cases 
+    } 
 
     // calculate the heading value
     float shared_DWANode::calHeading(float v_current, float w_current, float v_command, float w_command)
@@ -870,12 +1131,10 @@ namespace shared_DWA
         cv::Mat cmd_cost_window = weight_heading * heading_window + weight_velocity * velocity_window;
         // cv::normalize(cmd_cost_window, cmd_cost_window, 0.0, 1.0, cv::NORM_MINMAX);
         // cv::pow(cmd_cost_window, gamma_cmd, cmd_cost_window);
-        if (goal_found && agent_forward && fabs(v_cmd) > 0.2)
+        if (goal_found && !inside_inflation && agent_forward && fabs(v_cmd) > 0.2)
         {
             weight_goal_local = weight_goal;
             weight_cmd_local = weight_cmd;
-            path_cost_window = shared_DWANode::calPathcost(dist_cost_window, angle_cost_window);
-            // cv::normalize(path_cost_window, path_cost_window, 0.0, 1.0, cv::NORM_MINMAX);
             if (enable_dynamic_weight)
             {
                 float cmd_discount = powf(cv::sum(clearance_window)[0] / ((v_sample + 1) * (w_sample + 1)), 2.5);
@@ -883,7 +1142,47 @@ namespace shared_DWA
                 weight_cmd_local = (weight_cmd_local >= weight_cmd_lb) ? weight_cmd_local : weight_cmd_lb;
                 weight_goal_local = 1 - weight_cmd_local;
             }
-            // std::cout << "Weight_goal " << weight_goal_local << std::endl;
+            std::cout << "Weight_goal " << weight_goal_local << std::endl;
+            cv::Mat path_cost_total;
+            path_cost_total.zeros(cost_window.rows, cost_window.cols, CV_32F);
+            // whether to use the most likely goal or the expected cost
+            if (use_expected_cost)
+            {
+                double max_dist = 0, max_angle = 0, min_dist = 100, min_angle = 100;
+                double temp_max_dist, temp_max_angle, temp_min_dist, temp_min_angle;
+                for (int i = 0; i < belief_goal.size(); i++)
+                {
+                    cv::minMaxIdx(dist_cost_window[i], &temp_min_dist, &temp_max_dist, NULL, NULL);
+                    cv::minMaxIdx(angle_cost_window[i], &temp_min_angle, &temp_max_angle, NULL, NULL);
+                    if (temp_max_dist > max_dist)
+                        max_dist = temp_max_dist;
+                    if (temp_max_angle > max_angle)
+                        max_angle = temp_max_angle;
+                    if (temp_min_dist < min_dist)
+                        min_dist = temp_min_dist;
+                    if (temp_min_angle < min_angle)
+                        min_angle = temp_min_angle;
+                }
+                for (int j = 0; j < belief_goal.size(); j++)
+                {
+                    path_cost_window[j] = (dist_cost_window[j] - min_dist) / (max_dist - min_dist);
+                    // ROS_INFO_STREAM("dist_cost_window " << j);
+                    // ROS_INFO_STREAM(path_cost_window[j]);
+                    // path_cost_window[j] = weight_distance * path_cost_window[j] + (1 - weight_distance) * (angle_cost_window[j] - min_angle) / (max_angle - min_angle);
+                    // path_cost_window[i] = shared_DWANode::calPathcost(dist_cost_window[i], angle_cost_window[i]);
+                    // cv::normalize(path_cost_window[i], path_cost_window[i], 0.0, 1.0, cv::NORM_MINMAX);
+                    // ROS_INFO_STREAM("dist_cost_window " << j << " belief " << belief_goal[j]);
+                    // ROS_INFO_STREAM(path_cost_window[j]);
+                    path_cost_total = path_cost_total + belief_goal[j] * path_cost_window[j];
+                }
+            }
+            else
+            {
+                path_cost_total = shared_DWANode::calPathcost(dist_cost_window[max_index], angle_cost_window[max_index]);
+            }
+            // cv::normalize(path_cost_total, path_cost_total, 0.0, 1.0, cv::NORM_MINMAX);
+            // ROS_INFO_STREAM("cmd_cost_window " << cmd_cost_window);
+            // ROS_INFO_STREAM("path_cost_total " << path_cost_total);
 
             // Get min values of cmd cost and path cost
             int min_index[2] = {};
@@ -891,7 +1190,7 @@ namespace shared_DWA
             v_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[0];
             w_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[1];
             std::fill( std::begin(min_index), std::end(min_index), 0);
-            cv::minMaxIdx(path_cost_window, NULL, NULL, min_index, NULL);
+            cv::minMaxIdx(path_cost_total, NULL, NULL, min_index, NULL);
             v_optimal_path = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[0];
             w_optimal_path = dynamic_window.at<cv::Vec2f>(min_index[0], min_index[1])[1];
 
@@ -915,12 +1214,10 @@ namespace shared_DWA
         }
         else
         {
-            path_cost_window.release();
+            path_cost_window.clear();
             // path_cost_window.zeros(cost_window.rows, cost_window.cols, CV_32F);
-            weight_cmd_local = 1;
             cost_window = cmd_cost_window;
         }
-        final_cmd_weight.data = weight_cmd_local;
 
         //Check if normalizing for clearance window is required. Might be required when obstacle is in robot's current footprint
         double max_clearance;
@@ -930,7 +1227,6 @@ namespace shared_DWA
 
         //Calculate final cost
         cost_window = 1 - clearance_window + clearance_window.mul(cost_window);
-        cmd_cost_window = 1 - clearance_window + clearance_window.mul(cmd_cost_window);
 
         //Get min cost
         double min_cost = 0;
@@ -940,21 +1236,8 @@ namespace shared_DWA
         //If min cost is a velocity pair that has clearance less than threshold, reject velocity
         if (clearance_window.at<float>(min_idx[0], min_idx[1]) <= min_clearance_threshold)
         {
-            dwa_twist.linear.x = v_cmd;
-            dwa_twist.angular.z = w_cmd;
-            if (v_cmd > 0.15)
-            {
-                dwa_twist.linear.x = 0.1;
-            }
-            else if (v_cmd < -0.15)
-            {
-                dwa_twist.linear.x = -0.1;
-            }
-            // dwa_twist.linear.x = (fabs(dwa_twist.linear.x) > 0.2) ? 0.2 : dwa_twist.linear.x;  
-            // dwa_twist.angular.z = 0;
-            ROS_WARN_STREAM("Wheelchair inside collision zone now!");
-
-            collision_marker_publisher_.publish(collision_marker_);
+            dwa_twist.linear.x = 0;
+            dwa_twist.angular.z = 0;
         }
         else
         {
@@ -962,137 +1245,30 @@ namespace shared_DWA
             dwa_twist.angular.z = dynamic_window.at<cv::Vec2f>(min_idx[0], min_idx[1])[1];
         }
 
-        std::fill( std::begin(min_idx), std::end(min_idx), 0);
-        cv::minMaxIdx(cmd_cost_window, NULL, NULL, min_idx, NULL);
-        v_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_idx[0], min_idx[1])[0];
-        w_optimal_cmd = dynamic_window.at<cv::Vec2f>(min_idx[0], min_idx[1])[1];
-
-        if (clearance_window.at<float>(min_idx[0], min_idx[1]) <= min_clearance_threshold)
-        {
-            pure_dwa_twist.linear.x = v_cmd;
-            pure_dwa_twist.angular.z = w_cmd;
-            if (v_cmd > 0.2)
-            {
-                pure_dwa_twist.linear.x = 0.2;
-            }
-            else if (v_cmd < -0.2)
-            {
-                pure_dwa_twist.linear.x = -0.2;
-            }
-        }
-        else
-        {
-            pure_dwa_twist.linear.x = v_optimal_cmd;
-            pure_dwa_twist.angular.z = w_optimal_cmd;
-        }
-
         if (enable_visualization)
         {
-            geometry_msgs::Point final_line_point, cmd_line_point, robot_line_point, udwa_line_point;
-            final_line_point.x = cmd_line_point.x = robot_line_point.x = udwa_line_point.x = 0;
-            final_line_point.y = cmd_line_point.y = robot_line_point.y = udwa_line_point.y = 0;
-            final_line_point.z = cmd_line_point.z = robot_line_point.z = udwa_line_point.z = 0;
-            float theta_final = 0, theta_cmd = 0, theta_robot = 0, theta_dwa = 0;
-
-            //Hardcode sample interval and number for visualization purposes only
-            double marker_lifetime = 2.0 * algorithm_interval;
-            waypoint_txt.lifetime = ros::Duration(marker_lifetime);
-            float sample_interval = 0.15;
-            float sample_number = sample_time / sample_interval;
-            std::string line_type;
-            std::stringstream cmd_weight_stream;
+            geometry_msgs::Point final_line_point, user_line_point, robot_line_point;
+            final_line_point.x = user_line_point.x = robot_line_point.x = 0;
+            final_line_point.y = user_line_point.y = robot_line_point.y = 0;
+            final_line_point.z = user_line_point.z = robot_line_point.z = 0;
+            float theta_final = 0, theta_user = 0, theta_robot = 0;
             for (int i = 0; i < sample_number; i++)
             {
                 final_line_point.x += dwa_twist.linear.x * cos(theta_final) * sample_interval;
                 final_line_point.y += dwa_twist.linear.x * sin(theta_final) * sample_interval;
                 theta_final += dwa_twist.angular.z * sample_interval;
                 final_line.points.push_back(final_line_point);
-                cmd_line_point.x += v_cmd * cos(theta_cmd) * sample_interval;
-                cmd_line_point.y += v_cmd * sin(theta_cmd) * sample_interval;
-                theta_cmd += w_cmd * sample_interval;
-                cmd_line.points.push_back(cmd_line_point);
+                user_line_point.x += v_cmd * cos(theta_user) * sample_interval;
+                user_line_point.y += v_cmd * sin(theta_user) * sample_interval;
+                theta_user += w_cmd * sample_interval;
+                user_line.points.push_back(user_line_point);
                 robot_line_point.x += v_optimal_path * cos(theta_robot) * sample_interval;
                 robot_line_point.y += v_optimal_path * sin(theta_robot) * sample_interval;
                 theta_robot += w_optimal_path * sample_interval;
                 robot_line.points.push_back(robot_line_point);
-                udwa_line_point.x += v_optimal_cmd * cos(theta_dwa) * sample_interval;
-                udwa_line_point.y += v_optimal_cmd * sin(theta_dwa) * sample_interval;
-                theta_dwa += w_optimal_cmd * sample_interval;
-                udwa_line.points.push_back(udwa_line_point);
-                waypoint_txt.color.r = 0;
-                // if (i == round(sample_number * 2 / 3))
-                // {
-                //     line_type = "g-dwa";
-                //     waypoint_txt.id = 6;
-                //     waypoint_txt.text = line_type;
-                //     waypoint_txt.pose.position = final_line_point;
-                //     waypoint_txt.pose.orientation.w = 1;
-                //     line_namelist.markers.push_back(waypoint_txt);
-                //     line_type = "cmd";
-                //     waypoint_txt.id = 7;
-                //     waypoint_txt.text = line_type;
-                //     waypoint_txt.pose.position = cmd_line_point;
-                //     waypoint_txt.pose.orientation.w = 1;
-                //     line_namelist.markers.push_back(waypoint_txt);
-                //     // line_type = "auto";
-                //     // waypoint_txt.id = 8;
-                //     // waypoint_txt.text = line_type;
-                //     // waypoint_txt.pose.position = robot_line_point;
-                //     // waypoint_txt.pose.orientation.w = 1;
-                //     // line_namelist.markers.push_back(waypoint_txt);
-                //     line_type = "s-dwa";
-                //     waypoint_txt.id = 9;
-                //     waypoint_txt.text = line_type;
-                //     waypoint_txt.pose.position = udwa_line_point;
-                //     waypoint_txt.pose.orientation.w = 1;
-                //     line_namelist.markers.push_back(waypoint_txt);
-                // }
             }
-            cmd_weight_stream << std::fixed << std::setprecision(2) << weight_cmd_local;
-            line_type = cmd_weight_stream.str();
-            waypoint_txt.id = 10;
-            waypoint_txt.text = line_type;
-            waypoint_txt.pose.position.x = -1;
-            waypoint_txt.pose.position.y = 0;
-            waypoint_txt.pose.orientation.w = 1;
-            waypoint_txt.scale.z = 0.7;
-            waypoint_txt.color.r = 1.0;
-            waypoint_txt.color.g = 1.0;
-            waypoint_txt.color.b = 1.0;
-            waypoint_prob.markers.push_back(waypoint_txt);
-            waypoint_txt.scale.z = 0.5;
-            waypoint_txt.color.r = 0.0;
-            waypoint_txt.color.g = 0.0;
-            waypoint_txt.color.b = 0.0;
         }
-        // if(enable_visualization)
-        // {
-        //     geometry_msgs::Point final_line_point, cmd_line_point, origin_dwa_point;
-        //     final_line_point.x = cmd_line_point.x = origin_dwa_point.x = 0;
-        //     final_line_point.y = cmd_line_point.y = origin_dwa_point.y = 0;
-        //     final_line_point.z = cmd_line_point.z = origin_dwa_point.z = 0;
-        //     float theta_final = 0, theta_cmd = 0, theta_dwa = 0;
-
-        //     //Hardcode sample interval and number for visualization purposes only
-        //     float sample_interval = 0.15;
-        //     float sample_number = sample_time / sample_interval;
-        //     for (int i = 0; i < sample_number; i++)
-        //     {
-        //         final_line_point.x += dwa_twist.linear.x * cos(theta_final) * sample_interval;
-        //         final_line_point.y += dwa_twist.linear.x * sin(theta_final) * sample_interval;
-        //         theta_final += dwa_twist.angular.z * sample_interval;
-        //         final_line.points.push_back(final_line_point);
-        //         origin_dwa_point.x += original_dwa_twist.linear.x * cos(theta_dwa) * sample_interval;
-        //         origin_dwa_point.y += original_dwa_twist.linear.x * sin(theta_dwa) * sample_interval;
-        //         theta_dwa += original_dwa_twist.angular.z * sample_interval;
-        //         dwa_line.points.push_back(origin_dwa_point);
-        //         cmd_line_point.x += v_cmd * cos(theta_cmd) * sample_interval;
-        //         cmd_line_point.y += v_cmd * sin(theta_cmd) * sample_interval;
-        //         theta_cmd += w_cmd * sample_interval;
-        //         cmd_line.points.push_back(cmd_line_point);
-        //     }
-        // }
-        // // ROS_INFO_STREAM("linear " <<  dwa_twist.linear.x << ", angular " << dwa_twist.angular.z);
+        // ROS_INFO_STREAM("linear " <<  dwa_twist.linear.x << ", angular " << dwa_twist.angular.z);
     }
 
     cv::Mat shared_DWANode::calPathcost(cv::Mat dist_cost, cv::Mat angle_cost)
@@ -1115,58 +1291,62 @@ namespace shared_DWA
         return dist_cost * weight_distance + angle_cost * (1 - weight_distance);
     }
 
-    bool shared_DWANode::generateGoal()
+    bool shared_DWANode::generateGoal(const path_belief_update::WaypointDistribution &msg_waypoint)
     {
-        //If goal is invalid, reset dwa_goal internally
-        if(goal_data.poses.size() == 0.0)
+        // check if the waypoint distribution is valid
+        if (msg_waypoint.waypoints.poses.size() == 0 && msg_waypoint.distribution.size() == 0)
         {
-            dwa_goal.header.frame_id = "";
             return false;
         }
         else
         {
-            belief_goal.clear();
-            geometry_msgs::Point temp_waypoint;
-            std::string prob_value;
-            for (int i = 0; i < goal_data.poses.size(); ++i)
+            // dwa_goal.header.frame_id = base_frame_id;
+            belief_goal = msg_waypoint.distribution;
+            goal_list = msg_waypoint.waypoints;
+            std::vector<float>::iterator max_iterator = std::max_element(belief_goal.begin(), belief_goal.end());
+            max_index = max_iterator - belief_goal.begin();
+            for (int i = 0; i < belief_goal.size(); i++)
             {
-                belief_goal.push_back(goal_data.poses[i].position.z);
+                tf2::convert(goal_list.poses[i].orientation, goal_quat);
+                tf2Scalar yaw, pitch, roll;
+                tf2::Matrix3x3(goal_quat).getRPY(roll, pitch, yaw);
+                goal_yaw.push_back(yaw);
+                float dist_single = calDistance(0, 0, goal_list.poses[i].position.x, goal_list.poses[i].position.y);
+                dist2goal.push_back(dist_single);
+                if (use_expected_cost)
+                {
+                    waypoint_viz.points.push_back(goal_list.poses[i].position);
+                }
             }
-            std::vector<float>::iterator itMax = std::max_element(belief_goal.begin(), belief_goal.end());
-            int goal_index = std::distance(belief_goal.begin(), itMax);
-            double marker_lifetime = 2.0 * algorithm_interval;
-            waypoint_txt.lifetime = ros::Duration(marker_lifetime);
-
-            for (int i = 0; i < goal_data.poses.size(); ++i)
+            if (!use_expected_cost)
             {
-                if (i == goal_index)
-                {
-                    waypoint_txt.color.r = 1;
-                }
-                else
-                {
-                    waypoint_txt.color.r = 0;
-                }
-                temp_waypoint = goal_data.poses[i].position;
-                temp_waypoint.z = 0;
-                prob_value = std::to_string(belief_goal[i]);
-                prob_value = prob_value.substr(0, prob_value.find(".")+3);
-                waypoint_txt.id = i + 10 + 2 * goal_data.poses.size();
-                waypoint_txt.text = prob_value;
-                waypoint_txt.pose.position = temp_waypoint;
-                waypoint_txt.pose.orientation.w = 1;
-                waypoint_prob.markers.push_back(waypoint_txt);
-                // waypoint_viz.points.push_back(temp_waypoint);
+                waypoint_viz.points.push_back(goal_list.poses[max_index].position);
             }
-            // waypoint_viz.points.push_back( goal_data.poses[goal_index].position);
-            dwa_goal.header.frame_id = base_frame_id;
-            dwa_goal.pose = goal_data.poses[goal_index];
-            dwa_goal.pose.position.z = 0;
-            tf2::convert(dwa_goal.pose.orientation, goal_quat);
-            tf2Scalar yaw, pitch, roll;
-            tf2::Matrix3x3(goal_quat).getRPY(roll, pitch, yaw);
-            goal_yaw = yaw;
+            // tf2::convert(dwa_goal.pose.orientation, goal_quat);
+            // tf2Scalar yaw, pitch, roll;
+            // tf2::Matrix3x3(goal_quat).getRPY(roll, pitch, yaw);
+            // goal_yaw = yaw;
             return true;
         }
+    }
+
+    std::vector<std::vector<obstacle_detector::CircleObstacle>> shared_DWANode::forwardSimulateObstacles(const std::vector<obstacle_detector::CircleObstacle> &obstacles, int sample_number, double sample_interval)
+    {
+        // vec[i][n] means position of obstacle n at time i into the future
+        std::vector<std::vector<obstacle_detector::CircleObstacle>> forward_sim_obs(sample_number, std::vector<obstacle_detector::CircleObstacle>(obstacles.size()));
+        for (int obs = 0; obs < obstacles.size(); ++obs)
+        {
+            forward_sim_obs[0][obs] = obstacles[obs];
+            for (int sample = 1; sample < sample_number; ++sample)
+            {
+                //Current sample's position is previous_position + interval * velocity
+                forward_sim_obs[sample][obs].center.x = forward_sim_obs[sample - 1][obs].center.x + obstacles[obs].velocity.x * sample_interval;
+                forward_sim_obs[sample][obs].center.y = forward_sim_obs[sample - 1][obs].center.y + obstacles[obs].velocity.y * sample_interval;
+                forward_sim_obs[sample][obs].center.z = forward_sim_obs[sample - 1][obs].center.z + obstacles[obs].velocity.z * sample_interval;
+                forward_sim_obs[sample][obs].true_radius = forward_sim_obs[sample - 1][obs].true_radius;
+            }
+        }
+
+        return forward_sim_obs;
     }
 } // namespace shared_DWA

@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   tf2
   tf2_ros
+  obstacle_detector
+  path_belief_update
 )
 
 find_package(OpenCV)
@@ -54,7 +56,7 @@ add_executable(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${catkin_EXPORTED_TARGETS}
-  # ${PROJECT_NAME}_generate_messages_cpp
+  path_belief_update_generate_messages_cpp
 )
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}

@@ -1,7 +1,5 @@
-test_world: "hospital"
+test_world: "test"
 # test_world: "test"
-# test_world: "corridor"
-# test_world: "pomdp_test"
 # the selection of test test_world
 # options: "test", "diamond", "museum", "hospital"
 

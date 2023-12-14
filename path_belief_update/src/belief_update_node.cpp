@@ -14,42 +14,80 @@ namespace belief_update
         // Subscribers & Publishers
         odom_subscriber_ = node_handle_.subscribe("/odom", 1, &belief_updateNode::odomCallback, this);
         path_subscriber_ = node_handle_.subscribe("/all_paths", 1, &belief_updateNode::pathCallback, this);
-        status_subscriber_ = node_handle_.subscribe("/move_base/status", 1, &belief_updateNode::statusCallback, this);
-        global_subscriber_ = node_handle_.subscribe("/move_base/goal", 1, &belief_updateNode::globalCallback, this);
         if (input_datatype == "point")
         {
-            input_subscriber_ = node_handle_.subscribe("/joystick_calib", 1, &belief_updateNode::pointCallback, this);
+            input_subscriber_ = node_handle_.subscribe("/joystick", 1, &belief_updateNode::pointCallback, this);
         }
         else if (input_datatype == "twist")
         {
-            input_subscriber_ = node_handle_.subscribe("/joy_vel", 1, &belief_updateNode::twistCallback, this);
+            input_subscriber_ = node_handle_.subscribe("/inputer_converter/cmd_vel", 1, &belief_updateNode::twistCallback, this);
         }
 
-        // vel_publisher_ = node_handle_.advertise<geometry_msgs::Twist>("/belief_update/cmd_vel", 1);
-        goal_publisher_ = node_handle_.advertise<geometry_msgs::PoseArray>("/goal_distribution", 1, true);
-        path_publisher_ = node_handle_.advertise<std_msgs::UInt32>("/preferred_path_ind", 1, true);
-        local_publiser_ = node_handle_.advertise<geometry_msgs::Pose>("/belief_update/global_goal", 1);
-        noaction_timer_ = node_handle_.createTimer(ros::Duration(noaction_update_interval), &belief_updateNode::noactionTimerCallback, this);
-        action_timer_ = node_handle_.createTimer(ros::Duration(action_update_interval), &belief_updateNode::actionTimerCallback, this);
+        goal_publisher_ = node_handle_.advertise<path_belief_update::WaypointDistribution>("/waypoint_distribution", 1, true);
+        viz_publisher_ = node_handle_.advertise<visualization_msgs::MarkerArray>("/visualization/circle", 1);
+        belief_timer_ = node_handle_.createTimer(ros::Duration(update_interval), &belief_updateNode::beliefTimerCallback, this);
+        publish_timer_ = node_handle_.createTimer(ros::Duration(publish_interval), &belief_updateNode::publishTimerCallback, this);
 
-        // std::vector<float> test_goal{0.1, 0.2, 0.3, 0.4, 0.0};
-        // std::vector<float> soft_goal, clip_goal;
-        // for (int i = 0; i < test_goal.size(); i++)
-        // {
-        //     ROS_INFO_STREAM("Test Goal " << i + 1 << ": " << test_goal[i]);
-        // }
-        // soft_goal = belief_updateNode::softMax(test_goal);
-        // ROS_INFO_STREAM("After softmax:");
-        // for (int i = 0; i < soft_goal.size(); i++)
-        // {
-        //     ROS_INFO_STREAM("Test Goal " << i + 1 << ": " << soft_goal[i]);
-        // }
-        // clip_goal = belief_updateNode::clipBelief(test_goal);
-        // ROS_INFO_STREAM("After clipping:");
-        // for (int i = 0; i < clip_goal.size(); i++)
-        // {
-        //     ROS_INFO_STREAM("Test Goal " << i + 1 << ": " << clip_goal[i]);
-        // }
+        ROS_INFO_STREAM("Circle Space Initializing...");
+        belief_circle.resize(36, static_cast<float>(1.0/36));
+        angle_circle.resize(36, 0);
+        // visualization markers
+        circle_line.header.stamp = ros::Time::now();
+        circle_line.header.frame_id = base_frame_id;
+        circle_line.ns = "visualization_circle";
+        circle_line.action = visualization_msgs::Marker::ADD;
+        circle_line.pose.orientation.w = 1.0;
+        circle_line.type = visualization_msgs::Marker::SPHERE_LIST;
+        circle_line.scale.x = 0.1;
+        circle_line.scale.y = 0.1;
+        circle_line.scale.z = 0.1;
+        circle_line.color.g = 1.0;
+        circle_line.color.a = 1.0;
+        circle_line.pose.orientation.w = 1.0;
+        circle_line.points.reserve(10);
+
+        tf2::Quaternion rotation_angle;
+        geometry_msgs::Point circle_point;
+        geometry_msgs::Quaternion tf_quat_msg;
+        geometry_msgs::TransformStamped rotation_tf;
+        rotation_tf.header.frame_id = base_frame_id;
+        rotation_tf.child_frame_id = base_frame_id;
+        rotation_tf.transform.translation.x = 0;
+        rotation_tf.transform.translation.y = 0;
+        rotation_tf.transform.translation.z = 0;
+        // tf2::doTransform<geometry_msgs::PoseStamped>(agent_pose_temp, agent_pose_temp, tf);
+        for (int i = 0; i < angle_circle.size(); i++)
+        {
+            angle_circle[i] = i * M_PI / 18;
+
+            circle_line.id = i;
+            circle_line.color.g = 1.0 - powf(belief_circle[i], 0.2);
+            circle_line.color.r = 1;
+            // circle_line.color.g = 1.0 - powf(belief_circle[i], 0.6);
+            // circle_line.color.r = powf(belief_circle[i], 0.2);
+            // circle_line.color.b = powf(belief_circle[i], 0.2);
+            tf2::Vector3 angle_direction;
+            angle_direction.setX(1);
+            angle_direction.setY(0);
+            angle_direction.setZ(0);
+            tf2::Matrix3x3 angle_rotation;
+            angle_rotation.setRPY(0, 0, angle_circle[i]);
+            angle_direction = angle_rotation * angle_direction;
+            circle_global_direction.push_back(angle_direction);
+            for (int j = 0; j < 10; j++)
+            {
+                angle_direction.setX((j + 1) * 0.1);
+                angle_direction.setY(0);
+                angle_direction.setZ(0);
+                angle_direction = angle_rotation * angle_direction;
+                circle_point.x = angle_direction.getX();
+                circle_point.y = angle_direction.getY();
+                circle_point.z = angle_direction.getZ();
+                circle_line.points.push_back(circle_point);
+            }
+            circle_viz.markers.push_back(circle_line);
+            circle_line.points.clear();
+        }
     }
     // Destructor
     belief_updateNode::~belief_updateNode()
@@ -60,10 +98,10 @@ namespace belief_update
     bool belief_updateNode::readParameters()
     {
         ROS_INFO_STREAM("Loading parameters.....");
-        if (!node_handle_.getParam("noaction_update_interval", noaction_update_interval))
-            ROS_WARN_STREAM("Parameter noaction_update_interval not set. Using default setting: " << noaction_update_interval);
-        if (!node_handle_.getParam("action_update_interval", action_update_interval))
-            ROS_WARN_STREAM("Parameter action_update_interval not set. Using default setting: " << action_update_interval);
+        if (!node_handle_.getParam("update_interval", update_interval))
+            ROS_WARN_STREAM("Parameter update_interval not set. Using default setting: " << update_interval);
+        if (!node_handle_.getParam("publish_interval", publish_interval))
+            ROS_WARN_STREAM("Parameter publish_interval not set. Using default setting: " << publish_interval);
         if (!node_handle_.getParam("path_frame_id", path_frame_id))
             ROS_WARN_STREAM("Parameter path_frame_id not set. Using default setting: " << path_frame_id);
         if (!node_handle_.getParam("base_frame_id", base_frame_id))
@@ -96,6 +134,8 @@ namespace belief_update
             ROS_WARN_STREAM("Parameter x_max not set. Using default setting: " << x_max);
         if (!node_handle_.getParam("y_max", y_max))
             ROS_WARN_STREAM("Parameter y_max not set. Using default setting: " << y_max);
+        if (!node_handle_.getParam("circle_rotation", circle_rotation))
+            ROS_WARN_STREAM("Parameter circle_rotation not set. Using default setting: " << circle_rotation);
         if (input_datatype == "point")
         {
             ROS_INFO_STREAM("Input datatype is \"point\".");
@@ -118,7 +158,9 @@ namespace belief_update
         odom_frame_id = msg_odom.header.frame_id;
         v_agent = msg_odom.twist.twist.linear.x;
         w_agent = msg_odom.twist.twist.angular.z;
+        // waypoint_dist = 3.5;
         waypoint_dist = fabs(v_agent) * sample_time + waypoint_increment;
+        // waypoint_dist = fabs(v_agent) * 1 + waypoint_increment;
         // v_agent = round(v_agent * 10) / 10;
         // w_agent = round(w_agent * 10) / 10;
         odom_receive = true;
@@ -131,16 +173,15 @@ namespace belief_update
         y_cmd = msg_twist.angular.z;
         x_cmd /= x_max;
         y_cmd /= y_max;
-        x_cmd = round(x_cmd * 100) / 100;
-        y_cmd = round(y_cmd * 100) / 100;
+        x_cmd = round(x_cmd * 10) / 10;
+        y_cmd = round(y_cmd * 10) / 10;
         if (x_cmd > 0 || (x_cmd == 0 && y_cmd != 0))
         {
             action_update = true;
-            
         }
         else
         {
-            noaction_update = true;
+            action_update = false;
         }
         input_receive = true;
     }
@@ -151,44 +192,23 @@ namespace belief_update
         y_cmd = msg_point.y;
         x_cmd /= x_max;
         y_cmd /= y_max;
-        x_cmd = round(x_cmd * 100) / 100;
-        y_cmd = round(y_cmd * 100) / 100;
+        x_cmd = round(x_cmd * 10) / 10;
+        y_cmd = round(y_cmd * 10) / 10;
         if (x_cmd > 0 || (x_cmd == 0 && y_cmd != 0))
         {
             action_update = true;
         }
         else
         {
-            noaction_update = true;
+            action_update = false;
         }
         input_receive = true;
-    }
-
-    void belief_updateNode::statusCallback(const actionlib_msgs::GoalStatusArray &msg_status)
-    {
-        if (msg_status.status_list.size() != 0)
-        {
-            if (msg_status.status_list[0].status == 3)
-            {
-                goal_reached = true;
-            }
-            else
-            {
-                goal_reached = false;
-            }
-            status_receive = true;
-        }
-    }
-
-    void belief_updateNode::globalCallback(const move_base_msgs::MoveBaseActionGoal &msg_global)
-    {
-        global_goal = msg_global.goal.target_pose;
-        global_receive = true;
     }
 
     void belief_updateNode::pathCallback(const voronoi_msgs_and_types::PathList &msg_path)
     {
         path_list = msg_path;
+        path_frame_id = path_list.paths[0].header.frame_id;
         // check if the paths exist or have changed
         if (path_list.paths.size() == 0)
         {
@@ -198,348 +218,215 @@ namespace belief_update
         }
         else
         {
-            // ROS_INFO_STREAM("Stamp: " << path_list.paths[0].header.stamp);
-            // for (int i = 0; i < path_list.paths.size(); ++i)
-            // {
-            //     ROS_INFO_STREAM("Path " << i + 1 << ", seq = " << path_list.paths[i].header.seq);
-            // }
-            path_frame_id = path_list.paths[0].header.frame_id;
-            if (belief_goal.size() == 0) // initialization
-            {
-                if (!goal_reached)
-                {
-                    ROS_INFO_STREAM("Belief Space Initializing.");
-                    pre_path_list = path_list;
-                    belief_goal.resize(path_list.paths.size(), 1 / static_cast<float>(path_list.paths.size()));
-                    // std::cout << "path size " <<  path_list.paths.size() << std::endl;
-                    // for (int i = 0; i < path_list.paths.size(); i++)
-                    // {
-                    //     // belief_goal[i] =  1 / static_cast<float>(belief_goal.size());
-                    //     std::cout << "belief_goal " << i << ": " <<  belief_goal[i] << std::endl;
-                    // }
-                }
-            }
-            else if (belief_goal.size() != path_list.paths.size()) // new paths have been found
-            {
-                ROS_INFO_STREAM("New paths added.");
-                belief_goal.resize(path_list.paths.size());
-                int num_changed_goal = 0;
-                float sum_changed_goal = 0;
-                for (int i = 0; i < path_list.paths.size(); i++)
-                {
-                    if (i < pre_path_list.paths.size()) // check if previous registered paths have changed
-                    {
-                        if (pre_path_list.paths[i].header.seq == path_list.paths[i].header.seq) // not changed
-                        {
-                            continue;
-                        }
-                        else // paths have been replaced
-                        {
-                            num_changed_goal++; // count the number of replaced paths
-                            sum_changed_goal += belief_goal[i]; // sum of the probabilities over replaced paths
-                            belief_goal[i] = 0; // assign zero probabilities to the replaced paths
-                            ROS_INFO_STREAM( num_changed_goal << " path(s) has changed.");
-                        }
-                    }
-                    else // assign zero probabilities to the appended new paths
-                    {
-                        belief_goal[i] = 0;
-                    }
-                }
-                // distribute the probabilites from replaced paths to the remaining paths evenly
-                for (int i = 0; i < path_list.paths.size(); i++)
-                {
-                    if (i < pre_path_list.paths.size() && pre_path_list.paths[i].header.seq == path_list.paths[i].header.seq)
-                    {
-                        belief_goal[i] += sum_changed_goal / (belief_goal.size() - num_changed_goal);
-                    }
-                }
-                // store the current path info for the next checking process
-                pre_path_list = path_list;
-                if (action_update)
-                {
-                    belief_goal = belief_updateNode::softMax(belief_goal);
-                    belief_goal = belief_updateNode::clipBelief(belief_goal);
-                }
-            }
-            else // no new paths added, only replacement
-            {
-                // ROS_INFO_STREAM("Amount of paths not changed.");
-                int num_changed_goal = 0;
-                float sum_changed_goal = 0;
-                bool path_replaced = false;
-                for (int i = 0; i < path_list.paths.size(); i++)
-                {
-                    if (pre_path_list.paths[i].header.seq == path_list.paths[i].header.seq)
-                    {
-                        continue;
-                    }
-                    num_changed_goal++;
-                    sum_changed_goal += belief_goal[i];
-                    belief_goal[i] = 0;
-                    path_replaced = true;
-                    ROS_INFO_STREAM( num_changed_goal << " path(s) has changed.");
-                }
-                if (path_replaced)
-                {
-                    for (int i = 0; i < path_list.paths.size(); i++)
-                    {
-                        if (pre_path_list.paths[i].header.seq == path_list.paths[i].header.seq)
-                        {
-                            belief_goal[i] += sum_changed_goal / (belief_goal.size() - num_changed_goal);
-                        }
-                    }
-                    if (action_update)
-                    {
-                        belief_goal = belief_updateNode::softMax(belief_goal);
-                        belief_goal = belief_updateNode::clipBelief(belief_goal);
-                    }
-                }
-                if (num_changed_goal == belief_goal.size())
-                {
-                    ROS_INFO_STREAM("All paths are changed, re-initializing...");
-                    belief_goal.clear();
-                    belief_goal.resize(path_list.paths.size(), 1 / static_cast<float>(path_list.paths.size()));
-                }
-                pre_path_list = path_list;
-                // ROS_INFO_STREAM("path_list.paths.size() " << path_list.paths.size());
-                // ROS_INFO_STREAM("Before Softmax:");
-                // for (int i = 0; i < belief_goal.size(); i++)
-                // {
-                //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << belief_goal[i]);
-                // }
-                // ROS_INFO_STREAM("After Softmax:");
-                // for (int i = 0; i < belief_goal.size(); i++)
-                // {
-                //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << belief_goal[i]);
-                // }
-            }
+            belief_updateNode::generateGoal(path_list);
+            belief_updateNode::linkCircle2Path(path_list);
             path_receive = true;
-
-            //Recalculate goal and publish
-            // if(goal_index >= 0 && goal_index < path_list.paths.size())
-            // {
-            //     agent_pose = getGlobalAgentPose().pose;
-            //     auto temp_goal = findGoal(agent_pose, path_list.paths[goal_index]);
-
-            //     geometry_msgs::TransformStamped map2localTransform;
-            //     try
-            //     {
-            //         map2localTransform = tf_buffer.lookupTransform(base_frame_id, path_frame_id, ros::Time(0), ros::Duration(0.10));
-            //         tf2::doTransform<geometry_msgs::Pose>(temp_goal, temp_goal, map2localTransform);
-            //         goal_publisher_.publish(temp_goal);
-            //     }
-            //     catch (tf2::TransformException &Exception) 
-            //     {
-            //         ROS_ERROR_STREAM(Exception.what());
-            //     }
-            // }
-            if (!goal_reached)
-            {
-                belief_updateNode::generateGoal();
-                // belief_updateNode::updateGoalPrediction();
-            }
+            // belief_updateNode::PublishResults();
         }
     }
 
-    void belief_updateNode::noactionTimerCallback(const ros::TimerEvent&)
-    {
-        if (noaction_update && odom_receive)
-        {
-            if (!goal_reached)
-            {
-                belief_updateNode::generateGoal();
-                // belief_updateNode::updateGoalPrediction();
-            }
-            belief_updateNode::noactionPublishResults();
-            noaction_update = false;
-        }
-    }
-
-    void belief_updateNode::actionTimerCallback(const ros::TimerEvent&)
+    void belief_updateNode::beliefTimerCallback(const ros::TimerEvent&)
     {
         if (action_update && odom_receive)
         {
-            if (!goal_reached)
+            // belief_updateNode::generateGoal();
+            belief_updateNode::updateGoalPrediction();
+            // action_update = false;
+        }
+    }
+
+    void belief_updateNode::publishTimerCallback(const ros::TimerEvent&)
+    {
+        belief_updateNode::PublishResults();
+    }
+
+    void belief_updateNode::linkCircle2Path(voronoi_msgs_and_types::PathList path_info)
+    {
+        std::vector<tf2::Vector3> path_directions;
+        if (circle_rotation == false)
+        {
+            tf2::Vector3 temp_vector;
+            for(int i = 0; i < path_info.paths.size(); i++)
             {
-                belief_updateNode::generateGoal();
-                belief_updateNode::updateGoalPrediction();
-                for (int i = 0; i < goal_list.poses.size(); i++)
+                for(int j = 0; j < path_info.paths[i].poses.size(); j++)
                 {
-                    // store the probabilities of goals in z coordinate
-                    goal_list.poses[i].position.z = belief_goal[i];
+                    if (j > 2 || j == path_info.paths[i].poses.size() - 1)
+                    {
+                        temp_vector.setX(path_info.paths[i].poses[j].pose.position.x - path_info.paths[i].poses[0].pose.position.x);
+                        temp_vector.setY(path_info.paths[i].poses[j].pose.position.y - path_info.paths[i].poses[0].pose.position.y);
+                        temp_vector.setZ(0);
+                        path_directions.push_back(temp_vector);
+                        break;
+                    }
                 }
             }
-            belief_updateNode::actionPublishResults();
-            action_update = false;
         }
-    }
-
-    geometry_msgs::PoseStamped belief_updateNode::getGlobalAgentPose()
-    {
-        geometry_msgs::PoseStamped agent_pose_temp;
-        agent_pose_temp.header.frame_id = base_frame_id;
-        agent_pose_temp.pose.orientation.w = 1.0;
-
-        try{
-            auto tf = tf_buffer.lookupTransform(path_frame_id, base_frame_id, ros::Time(0), ros::Duration(0.15));
-            tf2::doTransform<geometry_msgs::PoseStamped>(agent_pose_temp, agent_pose_temp, tf);
-        }
-        catch(tf2::TransformException &exception){
-            ROS_ERROR("%s", exception.what());
-        }
-
-        return agent_pose_temp;
-    }
-
-    void belief_updateNode::generateGoal()
-    {
-        if (path_receive)
+        else
         {
-            // geometry_msgs::Point point_marker;
-            goal_list.poses.clear();
-            goal_list.poses.resize(path_list.paths.size());
-            agent_pose = getGlobalAgentPose().pose;
-            for (int i = 0; i < path_list.paths.size(); i++)
-            {
-                goal_list.poses[i] = belief_updateNode::findGoal(agent_pose, path_list.paths[i]);
-                // point_marker.x = goal_list.poses[i].position.x;
-                // point_marker.y = goal_list.poses[i].position.y;
-                // point_marker.z = 0;
-                // goal_marker.points.push_back(point_marker);
-            }
-
-            // transform from map to base_link
-            geometry_msgs::TransformStamped map2localTransform;
-            try
-            {
-                map2localTransform = tf_buffer.lookupTransform(base_frame_id, path_frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
-            }
-            catch (tf2::TransformException &Exception) 
-            {
-                ROS_ERROR_STREAM(Exception.what());
-            }
-            tf2::doTransform<geometry_msgs::PoseStamped>(global_goal, global_goal_local, map2localTransform);
-            for (int i = 0; i < goal_list.poses.size(); i++)
-            {
-                tf2::doTransform<geometry_msgs::Pose>(goal_list.poses[i], goal_list.poses[i], map2localTransform);
-                // store the probabilities of goals in z coordinate
-                goal_list.poses[i].position.z = belief_goal[i];
-            }
-
-            goal_list.header.frame_id = base_frame_id;
+            path_directions = path_local_direction;
         }
+        // distribute the probabilities of circle sectors to new paths based on the angle difference
+        waypoint_belief.distribution.clear();
+        waypoint_belief.distribution.resize(path_info.paths.size(), 0.0);
+        std::vector<float> angle_diff;
+        float angle_sum = 0;
+        for (int i = 0; i < belief_circle.size(); i++)
+        {
+            for (int j = 0; j < path_info.paths.size(); j++)
+            {
+                float angle_vec_diff = M_PI - circle_global_direction[i].angle(path_directions[j]);
+                angle_sum += angle_vec_diff;
+                angle_diff.push_back(angle_vec_diff);
+            }
+            for (int j = 0; j < path_info.paths.size(); j++)
+            {
+                waypoint_belief.distribution[j] += belief_circle[i] * angle_diff[j] / angle_sum;
+            }
+            angle_diff.clear();
+            angle_sum = 0;
+        }
+        path_directions.clear();
     }
 
-    geometry_msgs::Pose belief_updateNode::findGoal(const geometry_msgs::Pose &agent_pose, const nav_msgs::Path &msg_path)
+    void belief_updateNode::generateGoal(voronoi_msgs_and_types::PathList path_info)
     {
+        waypoint_belief.waypoints.poses.clear();
+        waypoint_belief.waypoints.poses.resize(path_info.paths.size());
+        waypoint_belief.waypoints.header.frame_id = base_frame_id;
+        // transform from map to base_link
+        geometry_msgs::TransformStamped map2localTransform;
+        try
+        {
+            map2localTransform = tf_buffer.lookupTransform(base_frame_id, path_frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
+        }
+        catch (tf2::TransformException &Exception) 
+        {
+            ROS_ERROR_STREAM(Exception.what());
+        }
+
+        float acmlt_dist = 0;
         geometry_msgs::Pose generated_goal;
         
         tf2::Vector3 goal_direction;
         tf2::Quaternion goal_quat;
-
-        float acmlt_dist = belief_updateNode::calDistance(agent_pose.position.x, agent_pose.position.y,
-            msg_path.poses[0].pose.position.x, msg_path.poses[0].pose.position.y);
-        for (int i = 1; i < msg_path.poses.size(); i++)
-        {
-            if (i == msg_path.poses.size() - 1)
-            {
-                generated_goal = msg_path.poses[i].pose;
-                goal_direction = tf2::Vector3(msg_path.poses[i].pose.position.x - msg_path.poses[i - 1].pose.position.x,
-                    msg_path.poses[i].pose.position.y - msg_path.poses[i - 1].pose.position.y, 0);
-                break;
-            }
-            acmlt_dist += belief_updateNode::calDistance(msg_path.poses[i - 1].pose.position.x, msg_path.poses[i - 1].pose.position.y,
-            msg_path.poses[i].pose.position.x, msg_path.poses[i].pose.position.y);
-            if (acmlt_dist >= waypoint_dist)
-            {
-                generated_goal = msg_path.poses[i].pose;
-                goal_direction = tf2::Vector3(msg_path.poses[i].pose.position.x - msg_path.poses[i - 1].pose.position.x,
-                    msg_path.poses[i].pose.position.y - msg_path.poses[i - 1].pose.position.y, 0);
-                break;
-            }
-        }
         tf2Scalar yaw;
-        yaw = goal_direction.angle(tf2::Vector3(1, 0, 0));
-        if (goal_direction.getY() < 0)
+        path_local_direction.clear();
+        path_local_direction.resize(path_info.paths.size());
+        bool direction_receive = false;
+        bool waypoint_receive = false;
+        for (int i = 0; i < path_info.paths.size(); i++)
         {
-            yaw = -yaw;
+            for (int j = 0; j < path_info.paths[i].poses.size(); j++)
+            {
+                // std::cout << "path " << i << "distance " << acmlt_dist << std::endl;
+                tf2::doTransform<geometry_msgs::PoseStamped>(path_info.paths[i].poses[j], path_info.paths[i].poses[j], map2localTransform);
+                if (j > 2 || j == path_info.paths[i].poses.size() - 1)
+                {
+                    path_local_direction[i] = tf2::Vector3(path_info.paths[i].poses[j].pose.position.x, path_info.paths[i].poses[j].pose.position.y, 0);
+                    direction_receive = true;
+                }
+                if (j == 0)
+                {
+                    acmlt_dist += belief_updateNode::calDistance(0, 0, path_info.paths[i].poses[0].pose.position.x, path_info.paths[i].poses[0].pose.position.y);
+                }
+                else
+                {
+                    if (j == path_info.paths[i].poses.size() - 1)
+                    {
+                        generated_goal = path_info.paths[i].poses[j].pose;
+                        goal_direction = tf2::Vector3(path_info.paths[i].poses[j].pose.position.x - path_info.paths[i].poses[j - 1].pose.position.x,
+                            path_info.paths[i].poses[j].pose.position.y - path_info.paths[i].poses[j - 1].pose.position.y, 0);
+                        waypoint_receive = true;
+                    }
+                    else
+                    {
+                        if (!waypoint_receive)
+                        {
+                            acmlt_dist += belief_updateNode::calDistance(path_info.paths[i].poses[j - 1].pose.position.x, path_info.paths[i].poses[j - 1].pose.position.y,
+                            path_info.paths[i].poses[j].pose.position.x, path_info.paths[i].poses[j].pose.position.y);
+                            if (acmlt_dist >= waypoint_dist)
+                            {
+                                generated_goal = path_info.paths[i].poses[j].pose;
+                                goal_direction = tf2::Vector3(path_info.paths[i].poses[j].pose.position.x - path_info.paths[i].poses[j - 1].pose.position.x,
+                                    path_info.paths[i].poses[j].pose.position.y - path_info.paths[i].poses[j - 1].pose.position.y, 0);
+                                waypoint_receive = true;
+                            }
+                        }
+                    }
+                }
+
+                if (direction_receive && waypoint_receive)
+                {
+                    break;
+                }
+            }
+            yaw = goal_direction.angle(tf2::Vector3(1, 0, 0));
+            if (goal_direction.getY() < 0)
+            {
+                yaw = -yaw;
+            }
+            goal_quat.setRPY(0, 0, yaw);
+            tf2::convert(goal_quat, generated_goal.orientation);
+            waypoint_belief.waypoints.poses[i] = generated_goal;
+            acmlt_dist = 0;
+            direction_receive = false;
+            waypoint_receive = false;
+            // std::cout << "Goal " << i << ",x " << generated_goal.position.x << ",y " << generated_goal.position.y << ",z " << generated_goal.position.z << std::endl;
         }
-        goal_quat.setRPY(0, 0, yaw);
-        tf2::convert(goal_quat, generated_goal.orientation);
-        // ros::Time time_end = ros::Time::now();
-        // ros::Duration duration = time_end - time_begin;
-        // ROS_INFO_STREAM("Time Cost " << duration.toSec());
-        return generated_goal;
+        // std::cout << "belief size " << belief_path.size() << std::endl;
+        // std::cout << "goal size " << goal_list.poses.size() << std::endl;
+        // for (int i = 0; i < goal_list.poses.size(); i++)
+        // {
+        //     std::cout << "Goal " << i << ",x " << goal_list.poses[i].position.x << ",y " << goal_list.poses[i].position.y 
+        //         << ",dist " << belief_updateNode::calDistance(0, 0, goal_list.poses[i].position.x, goal_list.poses[i].position.y) 
+        //         << ",ID " << path_info.paths[i].header.seq << std::endl;
+        // }
+        // for (int i = 0; i < path_local_direction.size(); i++)
+        // {
+        //     std::cout << "Path " << path_info.paths[i].header.seq << ",x " << path_local_direction[i].getX() << ",y " << path_local_direction[i].getY() << std::endl;
+        // }
     }
 
-    void belief_updateNode::actionPublishResults()
+    void belief_updateNode::PublishResults()
     {
-        // ROS_INFO_STREAM("path_receive " << path_receive << ", goal_reached " << goal_reached << ", global_receive " << global_receive);
-        if (path_receive && !goal_reached && global_receive)
+        if (path_receive)
         {
-            // ROS_INFO_STREAM("Update after user action:");
-            // for (int i = 0; i < belief_goal.size(); i++)
-            // {
-            //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << belief_goal[i]);
-            // }
-            local_publiser_.publish(global_goal_local.pose);
-            std::vector<float>::iterator itMax = std::max_element(belief_goal.begin(), belief_goal.end());
-            goal_index = std::distance(belief_goal.begin(), itMax);
-            goal_publisher_.publish(goal_list);
-            std_msgs::UInt32 path_index;
-            path_index.data = path_list.paths[goal_index].header.seq;
-            path_publisher_.publish(path_index);
-            
+            goal_publisher_.publish(waypoint_belief);
         }
         else
         {
-            goal_publisher_.publish(geometry_msgs::PoseArray());
-            goal_index = -1;
+            goal_publisher_.publish(path_belief_update::WaypointDistribution());
         }
+        viz_publisher_.publish(circle_viz);
+        // for (int i = 0; i < waypoint_belief.distribution.size(); i ++)
+        // {
+        //     std::cout << "Path " << i << ": " << waypoint_belief.distribution[i] << ", ID: " << path_list.paths[i].header.seq << std::endl;
+        // }
         input_receive = false;
         path_receive = false;
         odom_receive = false;
-        status_receive = false;
-        goal_list.poses.clear();
-        if (goal_reached)
-        {
-            belief_goal.clear();
-        }
+        // waypoint_belief.distribution.clear();
+        // waypoint_belief.waypoints.poses.clear();
     }
 
-    void belief_updateNode::noactionPublishResults()
+    float belief_updateNode::calRotationValue(float x_input, float y_input, tf2::Vector3 sector_direction)
     {
-        // ROS_INFO_STREAM("path_receive " << path_receive << ", goal_reached " << goal_reached << ", global_receive " << global_receive);
-        if (path_receive && !goal_reached && global_receive)
+        tf2::Vector3 agent_heading(1, 0, 0);
+        tf2::Vector3 point2goal(x_input, y_input, 0);
+        float V_current = agent_heading.angle(sector_direction);
+        float V_goal;
+        if (x_input == 0 && y_input == 0)
         {
-            // ROS_INFO_STREAM("Update after no user action:");
-            // for (int i = 0; i < belief_goal.size(); i++)
-            // {
-            //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << belief_goal[i]);
-            // }
-            local_publiser_.publish(global_goal_local.pose);
-            std::vector<float>::iterator itMax = std::max_element(belief_goal.begin(), belief_goal.end());
-            goal_index = std::distance(belief_goal.begin(), itMax);
-            goal_publisher_.publish(goal_list);
-            std_msgs::UInt32 path_index;
-            path_index.data = path_list.paths[goal_index].header.seq;
-            path_publisher_.publish(path_index);
+            V_goal = M_PI;
         }
         else
         {
-            goal_publisher_.publish(geometry_msgs::PoseArray());
-            goal_index = -1;
+            V_goal = sector_direction.angle(point2goal);
         }
-        input_receive = false;
-        path_receive = false;
-        odom_receive = false;
-        status_receive = false;
-        goal_list.poses.clear();
-        if (goal_reached)
-        {
-            belief_goal.clear();
-        }
+        float C_action = belief_updateNode::calRotationActionCost(V_current);
+        // ROS_INFO_STREAM("x_input " << x_input << ", y_input " << y_input);
+        // ROS_INFO_STREAM("V_current " << V_current << ", C_action " << C_action << ", V_goal " << V_goal);
+        return discount_factor * powf(V_goal/M_PI, 1) * M_PI + C_action + V_current;
     }
 
     float belief_updateNode::calRotationValue(float x_input, float y_input, geometry_msgs::Pose goal_pose)
@@ -551,7 +438,7 @@ namespace belief_update
         float V_next;
         if (x_input == 0 && y_input == 0)
         {
-            V_next = PI;
+            V_next = M_PI;
         }
         else
         {
@@ -560,12 +447,12 @@ namespace belief_update
         float C_action = belief_updateNode::calRotationActionCost(V_current);
         // ROS_INFO_STREAM("x_input " << x_input << ", y_input " << y_input);
         // ROS_INFO_STREAM("V_current " << V_current << ", C_action " << C_action << ", V_next " << V_next);
-        return discount_factor * V_next + C_action; //+ V_current;
+        return discount_factor * V_next + C_action + V_current;
     }
 
     float belief_updateNode::calRotationActionCost(float angle_next)
     {
-        float angle_threshold_local = M_PI / 2;
+        float angle_threshold_local = angle_threshold * M_PI / 180;
         if (angle_next <= angle_threshold_local)
         {
             return angle_next * angle_const_cost / angle_threshold_local;
@@ -580,40 +467,108 @@ namespace belief_update
     {
         if (input_receive && path_receive)
         {
-            float Q_rotation[goal_list.poses.size()], Pi_rotation[goal_list.poses.size()];
-            std::vector<float> softmax_goal;
-            float sum_rotation = 0;
-            for (int i = 0; i < goal_list.poses.size(); i++)
+            if (circle_rotation == false)
             {
-                // ROS_INFO_STREAM("Goal " << i + 1);
-                Q_rotation[i] = belief_updateNode::calRotationValue(x_cmd, y_cmd, goal_list.poses[i]);
-                // ROS_INFO_STREAM("Goal " << i + 1 << ", V value " << V_g[i] << ", Q value " << Q_gu[i] << ", V+Q " << V_g[i] + Q_gu[i]);
-                // sum_rotation += Q_rotation[i];
-                Pi_rotation[i] = exp(- rate_factor * Q_rotation[i]);
-                softmax_goal.push_back(Pi_rotation[i] * belief_goal[i]);
-                // ROS_INFO_STREAM("Goal " << i + 1 << ", Q Value " << Q_rotation[i]);
+                // transform from map to base_link
+                geometry_msgs::TransformStamped map2localTransform;
+                try
+                {
+                    map2localTransform = tf_buffer.lookupTransform(base_frame_id, path_frame_id, ros::Time(0), ros::Duration(tf_buffer_timeout));
+                }
+                catch (tf2::TransformException &Exception) 
+                {
+                    ROS_ERROR_STREAM(Exception.what());
+                }
+                tf2::Quaternion rotation_quat;
+                tf2::Vector3 sector_direction;
+                tf2::convert(map2localTransform.transform.rotation, rotation_quat);
+                tf2::Matrix3x3 map2localMatrix(rotation_quat);
+                float Q_rotation[belief_circle.size()], Pi_rotation[belief_circle.size()];
+                std::vector<float> softmax_goal;
+                float sum_rotation = 0;
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    sector_direction = map2localMatrix * circle_global_direction[i];
+                    // ROS_INFO_STREAM("Goal " << i + 1);
+                    Q_rotation[i] = belief_updateNode::calRotationValue(x_cmd, y_cmd, sector_direction);
+                    // ROS_INFO_STREAM("Goal " << i + 1 << ", V value " << V_g[i] << ", Q value " << Q_gu[i] << ", V+Q " << V_g[i] + Q_gu[i]);
+                    // sum_rotation += Q_rotation[i];
+                    // std::cout << "Goal " << i + 1 << ", Q Value " << Q_rotation[i] << std::endl;
+                    Pi_rotation[i] = exp(- Q_rotation[i]);
+                    // ROS_INFO_STREAM("G " << i + 1 << ", C(g) " << Q_rotation[i] << ", Pi " << Pi_rotation[i]);
+                    sum_rotation += Pi_rotation[i] * belief_circle[i];
+                    softmax_goal.push_back(Pi_rotation[i] * belief_circle[i]);
+                }
+                // std::transform(belief_circle.begin(), belief_circle.end(), std::bind(std::multiplies<float>(), std::placeholders::_1, 1 / sum_belief_circle));
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    // Pi_rotation[i] = exp(- Q_rotation[i]);
+                    // Pi_rotation[i] = powf((1 - Q_rotation[i] / sum_rotation), rate_factor);
+                    softmax_goal[i] = softmax_goal[i] / sum_rotation;
+                }
+                belief_circle = belief_updateNode::clipBelief(softmax_goal);
+                tf2Scalar yaw, pitch, roll;
+                map2localMatrix.getRPY(roll, pitch, yaw);
+                // ROS_INFO_STREAM("Yaw " << yaw * 180 / M_PI);
+                int index_shift = round(yaw * 18 / M_PI);
+                int n = 0;
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    n = i + index_shift;
+                    if (i + index_shift < 0)
+                        n += belief_circle.size();
+                    else if (i + index_shift >= belief_circle.size())
+                        n -= belief_circle.size();
+                    circle_viz.markers[n].color.g = 1.0 - powf(belief_circle[i], 0.2);
+                }
             }
-            // std::transform(belief_goal.begin(), belief_goal.end(), std::bind(std::multiplies<float>(), std::placeholders::_1, 1 / sum_belief_goal));
-            // Pi_rotation =  exp(- ModelParams::exp_temperature * Q_rotation);
-            // for (int i = 0; i < belief_goal.size(); i++)
+            else
+            {
+                float Q_rotation[belief_circle.size()], Pi_rotation[belief_circle.size()];
+                std::vector<float> softmax_goal;
+                float sum_rotation = 0;
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    // ROS_INFO_STREAM("Goal " << i + 1);
+                    Q_rotation[i] = belief_updateNode::calRotationValue(x_cmd, y_cmd, circle_global_direction[i]);
+                    // ROS_INFO_STREAM("Goal " << i + 1 << ", V value " << V_g[i] << ", Q value " << Q_gu[i] << ", V+Q " << V_g[i] + Q_gu[i]);
+                    // sum_rotation += Q_rotation[i];
+                    // std::cout << "Goal " << i + 1 << ", Q Value " << Q_rotation[i] << std::endl;
+                    Pi_rotation[i] = exp(- Q_rotation[i]);
+                    // ROS_INFO_STREAM("G " << i + 1 << ", C(g) " << Q_rotation[i] << ", Pi " << Pi_rotation[i]);
+                    sum_rotation += Pi_rotation[i] * belief_circle[i];
+                    softmax_goal.push_back(Pi_rotation[i] * belief_circle[i]);
+                }
+                // std::transform(belief_circle.begin(), belief_circle.end(), std::bind(std::multiplies<float>(), std::placeholders::_1, 1 / sum_belief_circle));
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    // Pi_rotation[i] = exp(- Q_rotation[i]);
+                    // Pi_rotation[i] = powf((1 - Q_rotation[i] / sum_rotation), rate_factor);
+                    softmax_goal[i] = softmax_goal[i] / sum_rotation;
+                }
+                belief_circle = belief_updateNode::clipBelief(softmax_goal);
+                for (int i = 0; i < belief_circle.size(); i++)
+                {
+                    circle_viz.markers[i].color.g = 1.0 - powf(belief_circle[i], 0.2);
+                }
+            }
+            // for (int i = 0; i < belief_circle.size(); i ++)
             // {
-            //     // Pi_rotation[i] = exp(- Q_rotation[i] / sum_rotation);
-            //     Pi_rotation[i] = powf((1 - Q_rotation[i] / sum_rotation), rate_factor);
-            //     // ROS_INFO_STREAM("Goal " << i + 1 << ", Pi value " << Pi_rotation[i]);
-            //     softmax_goal.push_back(Pi_rotation[i] * belief_goal[i]);
+            //     // ROS_INFO_STREAM("Color Red " << i << ": " << circle_viz.markers[i].color.r);
+            //     ROS_INFO_STREAM("Belief " << i << ": " << softmax_goal[i]);
             // }
-            // ROS_INFO_STREAM("After update: ");
-            // for (int i = 0; i < belief_goal.size(); i++)
+            // softmax_goal = belief_updateNode::normalize(softmax_goal);
+            // belief_circle = belief_updateNode::softMax(softmax_goal);
+            
+            // std::vector<float>::iterator max_iterator = std::max_element(belief_circle.begin(), belief_circle.end());
+            // int max_index = max_iterator - belief_circle.begin();
+            // std::cout << "Angle " << angle_circle[max_index] * 180 / M_PI << ": " << belief_circle[max_index] << std::endl;
+            // float test = 0;
+            // for (int i = 0; i < belief_circle.size(); i ++)
             // {
-            //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << softmax_goal[i]);
-            // }
-            softmax_goal = belief_updateNode::normalize(softmax_goal);
-            // belief_goal = belief_updateNode::softMax(softmax_goal);
-            belief_goal = belief_updateNode::clipBelief(softmax_goal);
-            // ROS_INFO_STREAM("After processing: ");
-            // for (int i = 0; i < belief_goal.size(); i++)
-            // {
-            //     ROS_INFO_STREAM("Belief Goal " << i + 1 << ": " << belief_goal[i]);
+            //     // ROS_INFO_STREAM("Color Red " << i << ": " << circle_viz.markers[i].color.r);
+            //     test += belief_circle[i];
+            //     std::cout << "Angle " << angle_circle[i] * 180 / M_PI << ": " << belief_circle[i] << ",cumulation " << test << std::endl;
             // }
         }
     }

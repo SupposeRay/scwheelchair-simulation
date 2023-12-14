@@ -132,6 +132,17 @@
         </link>
         <gazebo reference="base_footprint">
             <turnGravityOff>false</turnGravityOff>
+            <sensor name="bumper_sensor" type="contact">
+            <always_on>true</always_on>
+            <update_rate>30</update_rate>
+            <contact>
+                <collision>base_footprint_fixed_joint_lump__base_link_collision</collision>
+            </contact>
+            <plugin name="bumper_plugin" filename="libgazebo_ros_bumper.so">
+                <bumperTopicName>mbot_base_collision</bumperTopicName>
+                <frameName>base_footprint</frameName>
+            </plugin>
+            </sensor>
         </gazebo>
 
         <joint name="base_footprint_joint" type="fixed">

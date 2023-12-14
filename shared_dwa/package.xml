@@ -14,12 +14,15 @@
   <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>path_belief_update</build_depend>
 
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>actionlib</exec_depend>
   <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>path_belief_update</exec_depend>
+  <depend>obstacle_detector</depend>
   
   <export>
 

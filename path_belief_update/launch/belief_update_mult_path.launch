@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="path_belief_update" pkg="path_belief_update" type="path_belief_update" output="screen" respawn="true">
+    <rosparam file="$(find path_belief_update)/config/path_belief_update.yaml" command="load"/>
+    <rosparam file="$(find shared_dwa)/config/shared_dwa_config.yaml" command="load"/>
+    <remap from="/all_paths" to="/move_base_multi_path/SharedVoronoiGlobalPlanner/all_paths" />
+    <remap from="/preferred_path_ind" to="/move_base_multi_path/SharedVoronoiGlobalPlanner/preferred_path_ind" />
+    <remap from="/inputer_converter/cmd_vel" to="/cmd_vel" />
+    <remap from="/most_likely_goal" to="/null2" />
+    <remap from="/joystick" to="/joy_vel" />
+    <!-- <remap from="/odom" to="/odometry/filtered" /> -->
+
+  </node>
+</launch>

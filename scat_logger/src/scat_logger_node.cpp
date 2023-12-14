@@ -1,6 +1,4 @@
 #include <ros/ros.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/UInt32.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Pose.h>
@@ -8,7 +6,6 @@
 #include <nav_msgs/Odometry.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <std_msgs/Bool.h>
 
 #include <iostream>
 #include <fstream>
@@ -22,20 +19,15 @@
 geometry_msgs::Twist cmd_vel;
 nav_msgs::Odometry odom;
 geometry_msgs::Point joystick_data;
-float user_control_weight = 0;
-int path_idx = 0;
 std::atomic<bool> new_mode(false);
 bool save = false;
 bool save_ref = false;
 bool use_sim_time = false;
-int e_stop_status;
 
 //ROS params
 std::string joystick_topic = "/arduino/joystick";
 std::string cmd_vel_topic = "/cmd_vel";
 std::string odom_topic = "/odom";
-std::string weight_topic = "/user_weight";
-std::string path_id_topic = "/preferred_path_ind";
 std::string base_frame = "base_link";
 std::string map_frame = "map";
 double frequency = 100;
@@ -45,15 +37,11 @@ std::string mode, main_directory, file_name, reference_file_name;
 
 std::vector<geometry_msgs::Pose> reference_path;
 std::vector<geometry_msgs::Pose> user_path;
-std::vector<geometry_msgs::Twist> issued_vel;
-std::vector<geometry_msgs::Twist> actual_vel;
+std::vector<geometry_msgs::Twist> user_input;
+std::vector<geometry_msgs::Twist> robot_velocity;
 std::vector<geometry_msgs::Point> joystick_input;
-std::vector<int> e_stop_status_vec;
-std::vector<double> simulation_time;
-std::vector<double> system_time;
-std::vector<float> user_weight;
-std::vector<int> path_index;
-std::chrono::time_point<std::chrono::system_clock> user_start_sys;
+std::vector<double> user_time;
+std::chrono::time_point<std::chrono::system_clock> user_start;
 double user_start_ros;
 
 void printModeSelection()
@@ -128,27 +116,6 @@ void joystickCB(const geometry_msgs::Point::ConstPtr &msg)
     joystick_data = *msg;
 }
 
-void estopCB(const std_msgs::Bool::ConstPtr &msg)
-{
-    e_stop_status = (int)msg->data;
-}
-
-void joystickvelCB(const geometry_msgs::Twist &msg)
-{
-    joystick_data.x = msg.linear.x;
-    joystick_data.y = msg.angular.z;
-}
-
-void weigthCB(const std_msgs::Float32 &msg)
-{
-    user_control_weight = msg.data;
-}
-
-void pathIDCB(const std_msgs::UInt32 &msg)
-{
-    path_idx = msg.data;
-}
-
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "scat_logger");
@@ -160,27 +127,14 @@ int main(int argc, char **argv)
     nh.getParam("base_frame", base_frame);
     nh.getParam("map_frame", map_frame);
     nh.getParam("odom_topic", odom_topic);
-    nh.getParam("use_sim_time", use_sim_time);
+    nh.getParam("/use_sim_time", use_sim_time);
     nh.getParam("joystick_topic", joystick_topic);
-    nh.getParam("weight_topic", weight_topic);
-    nh.getParam("path_id_topic", path_id_topic);
     if(use_sim_time)
         ROS_INFO("Use simulation time is enabled");
 
     ros::Subscriber cmd_vel_sub = nh.subscribe(cmd_vel_topic, 1, cmdVelCB);
     ros::Subscriber odom_sub = nh.subscribe(odom_topic, 1, odomCB);
-    ros::Subscriber e_stop_sub = nh.subscribe("/e_stop", 1, &estopCB);
-    ros::Subscriber weight_sub = nh.subscribe(weight_topic, 1, weigthCB);
-    ros::Subscriber pathid_sub = nh.subscribe(path_id_topic, 1, pathIDCB);
-    ros::Subscriber joystick_sub;
-    if (joystick_topic == "/joy_vel")
-    {
-        joystick_sub = nh.subscribe(joystick_topic, 1, joystickvelCB);
-    }
-    else
-    {
-        joystick_sub = nh.subscribe(joystick_topic, 1, joystickCB);
-    }
+    ros::Subscriber joystick_sub = nh.subscribe(joystick_topic, 1, joystickCB);
 
     tf2_ros::Buffer buf;
     tf2_ros::TransformListener listener(buf);
@@ -193,7 +147,7 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         std::cout << "\n\nInput full path to directory (end with '/') for saving log .txt files: \n";
-        main_directory = "/home/ray/path_record/experiment_data/";
+        main_directory = "/home/ray/path_record/";
         // std::cin >> main_directory;
         std::cout << "All log files will be saved to '" << main_directory << "'. Is this correct? (y/n): ";
         std::cin >> correct;
@@ -258,7 +212,7 @@ int main(int argc, char **argv)
                         ++count;
                     }
                     
-                    if(!std::isnan(new_pose.position.x) && !std::isnan(new_pose.position.y) && !std::isnan(new_pose.position.z))
+                    if(!isnan(new_pose.position.x) && !isnan(new_pose.position.y) && !isnan(new_pose.position.z))
                         reference_path.emplace_back(std::move(new_pose));
                 } while (!in_line.empty());
             }
@@ -308,16 +262,16 @@ int main(int argc, char **argv)
             else if (mode == "u")
             {
                 user_path.clear();
-                issued_vel.clear();
-                simulation_time.clear();
-                system_time.clear();
-                actual_vel.clear();
+                user_input.clear();
+                user_time.clear();
+                robot_velocity.clear();
                 joystick_input.clear();
-                user_weight.clear();
-                path_index.clear();
-                user_start_sys = std::chrono::system_clock::now();
+
                 if(use_sim_time)
                     user_start_ros = ros::Time::now().toSec();
+
+                else
+                    user_start = std::chrono::system_clock::now();
                 ROS_INFO("Recording user path and input...");
             }
 
@@ -354,18 +308,15 @@ int main(int argc, char **argv)
                     else if (mode == "u")
                     {
                         ros::spinOnce();
-                        issued_vel.push_back(cmd_vel);
+                        user_input.push_back(cmd_vel);
                         user_path.emplace_back(std::move(temp_pose.pose));
                         if(use_sim_time)
-                            simulation_time.emplace_back(ros::Time::now().toSec() - user_start_ros);
+                            user_time.emplace_back(ros::Time::now().toSec() - user_start_ros);
+
                         else
-                            simulation_time.emplace_back((std::chrono::system_clock::now() - user_start_sys).count() / 1000000000.0);
-                        system_time.emplace_back((std::chrono::system_clock::now() - user_start_sys).count() / 1000000000.0);
-                        actual_vel.push_back(odom.twist.twist);
+                            user_time.emplace_back((std::chrono::system_clock::now() - user_start).count() / 1000000000.0);
+                        robot_velocity.push_back(odom.twist.twist);
                         joystick_input.push_back(joystick_data);
-                        user_weight.push_back(user_control_weight);
-                        path_index.push_back(path_idx);
-                        e_stop_status_vec.push_back(e_stop_status);
                     }
                 }
                 catch (tf2::TransformException &ex)
@@ -380,11 +331,11 @@ int main(int argc, char **argv)
                 ROS_INFO("Reference path size %ld, user path size %ld", reference_path.size(), user_path.size());
                 std::ofstream file;
                 file.open(main_directory + file_name);
-                file << "ref.x,ref.y,ref.z,ref.o.x,ref.o.y,ref.o.z,ref.o.w,sim.time,user.x,user.y,user.z,user.o.x,user.o.y,user.o.z,user.o.w,cmd.linvel,cmd.angvel,actual.linvel,actual.angvel,joy.x,joy.y,user.weight,sys.time,path.index\n";
+                file << "ref.x,ref.y,ref.z,ref.o.x,ref.o.y,ref.o.z,ref.o.w,user.time,user.x,user.y,user.z,user.o.x,user.o.y,user.o.z,user.o.w,user.linvel,user.angvel,robot.linvel,robot.angvel,joy.x,joy.y\n";
                 for (int i = 0; i < reference_path.size() || i < user_path.size(); ++i)
                 {
                     char buff[300];
-                    sprintf(buff, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
+                    sprintf(buff, "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
                             i < reference_path.size() ? reference_path[i].position.x : std::nan(""),
                             i < reference_path.size() ? reference_path[i].position.y : std::nan(""),
                             i < reference_path.size() ? reference_path[i].position.z : std::nan(""),
@@ -392,7 +343,7 @@ int main(int argc, char **argv)
                             i < reference_path.size() ? reference_path[i].orientation.y : std::nan(""),
                             i < reference_path.size() ? reference_path[i].orientation.z : std::nan(""),
                             i < reference_path.size() ? reference_path[i].orientation.w : std::nan(""),
-                            i < simulation_time.size() ? simulation_time[i] : std::nan(""),
+                            i < user_time.size() ? user_time[i] : std::nan(""),
                             i < user_path.size() ? user_path[i].position.x : std::nan(""),
                             i < user_path.size() ? user_path[i].position.y : std::nan(""),
                             i < user_path.size() ? user_path[i].position.z : std::nan(""),
@@ -400,15 +351,12 @@ int main(int argc, char **argv)
                             i < user_path.size() ? user_path[i].orientation.y : std::nan(""),
                             i < user_path.size() ? user_path[i].orientation.z : std::nan(""),
                             i < user_path.size() ? user_path[i].orientation.w : std::nan(""),
-                            i < issued_vel.size() ? issued_vel[i].linear.x : std::nan(""),
-                            i < issued_vel.size() ? issued_vel[i].angular.z : std::nan(""),
-                            i < actual_vel.size() ? actual_vel[i].linear.x : std::nan(""),
-                            i < actual_vel.size() ? actual_vel[i].angular.z : std::nan(""),
+                            i < user_input.size() ? user_input[i].linear.x : std::nan(""),
+                            i < user_input.size() ? user_input[i].angular.z : std::nan(""),
+                            i < robot_velocity.size() ? robot_velocity[i].linear.x : std::nan(""),
+                            i < robot_velocity.size() ? robot_velocity[i].angular.z : std::nan(""),
                             i < joystick_input.size() ? joystick_input[i].x : std::nan(""),
-                            i < joystick_input.size() ? joystick_input[i].y : std::nan(""),
-                            i < user_weight.size() ? user_weight[i] : std::nan(""),
-                            i < system_time.size() ? system_time[i] : std::nan(""),
-                            i < path_index.size() ? path_index[i] : std::nan(""));
+                            i < joystick_input.size() ? joystick_input[i].y : std::nan(""));
                     std::string output(buff);
                     file << output;
                 }

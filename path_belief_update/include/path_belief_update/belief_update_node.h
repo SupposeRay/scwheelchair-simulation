@@ -21,7 +21,11 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalStatusArray.h>
+// Visualization
+// #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 // Custom Messages
+#include <path_belief_update/WaypointDistribution.h>
 #include <voronoi_msgs_and_types/PathList.h>
 // Visualization
 // #include <visualization_msgs/Marker.h>
@@ -53,24 +57,18 @@ namespace belief_update
         // callback for user input
         void pointCallback(const geometry_msgs::Point &msg_point);
         void twistCallback(const geometry_msgs::Twist &msg_twist);
-        // callback for the move_base status
-        void statusCallback(const actionlib_msgs::GoalStatusArray &msg_status);
-        // callback for the move_base goal
-        void globalCallback(const move_base_msgs::MoveBaseActionGoal &msg_global);
         // callback for goal list from path
         void pathCallback(const voronoi_msgs_and_types::PathList &msg_path);
-        // callback for belief update timer
-        void noactionTimerCallback(const ros::TimerEvent&);
-        // callback for action publish timer
-        void actionTimerCallback(const ros::TimerEvent&);
-        // publish final result with user action
-        void actionPublishResults();
-        // publish final result with no user action
-        void noactionPublishResults();
+        // callback for topics publishing timer
+        void publishTimerCallback(const ros::TimerEvent&);
+        // callback for belief updating timer
+        void beliefTimerCallback(const ros::TimerEvent&);
+        // publish final result
+        void PublishResults();
+        // link the circle distribution to current paths
+        void linkCircle2Path(voronoi_msgs_and_types::PathList path_info);
         // generate short-term goals from paths for belief updating
-        void generateGoal();
-        // find a goal along a path
-        geometry_msgs::Pose findGoal(const geometry_msgs::Pose &agent_pose, const nav_msgs::Path &msg_path);
+        void generateGoal(voronoi_msgs_and_types::PathList path_info);
         // compute the translational state value V of each goal given current state (position)
         // float calTranslationStateValue(geometry_msgs::Pose goal_pose);
         // compute the rotational state value V of each goal given current state (position)
@@ -79,6 +77,7 @@ namespace belief_update
         // float calTranslationStateActionValue(float v_action, float w_action, geometry_msgs::Pose goal_pose);
         // compute the rotational state-action value Q of each goal given current state (position) and action (u,v)
         // float calRotationStateActionValue(float v_action, float w_action, geometry_msgs::Pose goal_pose);
+        float calRotationValue(float x_input, float y_input, tf2::Vector3 sector_direction);
         float calRotationValue(float x_input, float y_input, geometry_msgs::Pose goal_pose);
         // compute the translational action cost
         // float calTranslationActionCost(float dis_next);
@@ -92,56 +91,55 @@ namespace belief_update
         /**
          * Get agent pose using TF
          **/
-        geometry_msgs::PoseStamped getGlobalAgentPose();
+        // geometry_msgs::PoseStamped getGlobalAgentPose();
 
         std::vector<float> softMax(std::vector<float> belief_vector);
         std::vector<float> clipBelief(std::vector<float> belief_vector);
         std::vector<float> normalize(std::vector<float> belief_vector);
 
         // Private Member Attributes
-        // PI
-        double PI = 3.14159265358;
         // ROS nodehandle
         ros::NodeHandle &node_handle_;
         // ROS subscribers and publishers 
         ros::Subscriber odom_subscriber_;
         ros::Subscriber path_subscriber_;
         ros::Subscriber input_subscriber_;
-        ros::Subscriber status_subscriber_;
-        ros::Subscriber global_subscriber_;
 
         ros::Publisher goal_publisher_;
-        ros::Publisher local_publiser_;
-        ros::Publisher path_publisher_;
-        ros::Publisher idx_publisher_;
-        ros::Timer noaction_timer_;
-        ros::Timer action_timer_;
-        // the interval of updating belief with no user action
-        float noaction_update_interval = 5;
+        ros::Publisher viz_publisher_;
+        ros::Timer belief_timer_;
+        ros::Timer publish_timer_;
+        // markers to show in Rviz
+        visualization_msgs::MarkerArray circle_viz;
+        visualization_msgs::Marker circle_line;
         // the interval of updating belief with user action
-        float action_update_interval = 1;
+        float update_interval = 0.5;
+        // the interval of publishing topics
+        float publish_interval = 0.1;
         // a bool value to trigger the action update timer
         bool action_update = false;
-        // a bool value to trigger the no action update timer
-        bool noaction_update = false;
-        // the belief space
-        std::vector<float> belief_goal;
-        // obtained local goal_list
-        geometry_msgs::PoseArray goal_list;
-        // signal obtained from published paths
+        // the circle belief space
+        std::vector<float> belief_circle;
+        // the circle angle space
+        std::vector<float> angle_circle;
+        // global directions
+        std::vector<tf2::Vector3> circle_global_direction;
+        // path directions
+        std::vector<tf2::Vector3> path_local_direction;
+        // path info obtained from published paths
         voronoi_msgs_and_types::PathList path_list;
-        // previous published paths to check the change
-        voronoi_msgs_and_types::PathList pre_path_list;
+        // the current waypoints and their probability distribution
+        path_belief_update::WaypointDistribution waypoint_belief;
+        // whether to rotate the circle or not
+        bool circle_rotation = false;
         // bool value to check if a specific msg is received
         bool odom_receive = false;
         bool input_receive = false;
         bool path_receive = false;
-        bool status_receive = false;
-        bool global_receive = false;
         // current velocities from odometry
         float v_agent = 0, w_agent = 0;
-        // current agent pose
-        geometry_msgs::Pose agent_pose;
+        // // current agent pose
+        // geometry_msgs::Pose agent_pose;
         // the user input datatype
         std::string input_datatype = "point";
         // signals from user input
@@ -167,19 +165,13 @@ namespace belief_update
         // the thresholds for clipping the probability
         float upper_bound = 0.9, lower_bound = 0.1;
         // the most likely goal index
-        int goal_index = 0;
-        // global goal in map frame
-        geometry_msgs::PoseStamped global_goal;
-        // global goal in local frame
-        geometry_msgs::PoseStamped global_goal_local;
-        // check if the global goal is reached
-        bool goal_reached = false;
+        // int goal_index = 0;
         // samole time of DWA
         float sample_time = 3;
         // the increment of distance to generate the next waypoint
         float waypoint_increment = 1.0;
         // previous goal index
-        int pre_goal_index = -1;
+        // int pre_goal_index = -1;
         tf2_ros::Buffer tf_buffer;
         tf2_ros::TransformListener tf_listener;
     };

@@ -7,9 +7,9 @@
   <node pkg="shared_dwa" type="shared_dwa" name="shared_dwa" output="screen">
     <rosparam file="$(find shared_dwa)/config/shared_dwa_config.yaml" command="load"/>
     <!-- <remap from="/path" to="/move_base/SharedVoronoiGlobalPlanner/plan" /> -->
-    <remap from="odom" to="odometry/filtered"/>
-    <!-- <remap from="shared_dwa/cmd_vel" to="cmd_vel" /> -->
-    <!-- <remap from="/input_converter/cmd_vel" to="/joy_vel"/> -->
+    <!-- <remap from="/odom" to="/odometry/filtered"/> -->
+    <remap from="/shared_dwa/cmd_vel" to="/cmd_vel" />
+    <remap from="/input_converter/cmd_vel" to="/joy_vel"/>
   </node>
 
 </launch>

@@ -3,7 +3,7 @@
 
 import rospy
 from geometry_msgs.msg import Point
-import sys, select, termios, tty, math
+import sys, select, termios, tty
 
 msg = """
 Control mbot!
@@ -76,8 +76,8 @@ if __name__=="__main__":
     control_speed = 0
     control_turn = 0
     try:
-        print(msg)
-        print(vels(speed,turn))
+        print msg
+        print vels(speed,turn)
         while(1):
             key = getKey()
 
@@ -91,9 +91,9 @@ if __name__=="__main__":
                 turn = turn * speedBindings[key][1]    
                 count = 0
 
-                print(vels(speed,turn))
+                print vels(speed,turn)
                 if (status == 14):
-                    print(msg)
+                    print msg
                 status = (status + 1) % 15
 
             elif key == ' ' or key == 'k' :
@@ -130,14 +130,8 @@ if __name__=="__main__":
 
 
             Output = Point()
-            length = control_speed * control_speed + control_turn * control_turn
-            length = math.sqrt(length)
-            if length == 0:
-                Output.x = control_speed
-                Output.y = control_turn
-            else:
-                Output.x = control_speed/length
-                Output.y = control_turn/length
+            Output.x = control_speed  
+            Output.y = control_turn
             Output.z = 0
             pub.publish(Output)
 

@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-
-<launch>
-  <node pkg="joystick_control" type="joystick_control" name="joystick_control" output="screen">
-    <rosparam file="$(find joystick_control)/config/joystick_control.yaml" command="load"/>
-    <!-- <remap from="/odometry/filtered" to="/odom"/> -->
-  </node>
-</launch>

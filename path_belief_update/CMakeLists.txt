@@ -7,14 +7,27 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  nav_msgs
   voronoi_msgs_and_types
   tf2
   tf2_ros
+  message_generation
+)
+
+add_message_files(
+  FILES
+  WaypointDistribution.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  nav_msgs
+  std_msgs
 )
 
 catkin_package(
  INCLUDE_DIRS include
- CATKIN_DEPENDS roscpp rospy std_msgs voronoi_msgs_and_types
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime voronoi_msgs_and_types
 )
 
 include_directories(

@@ -29,8 +29,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include <chrono>
-
 move_base_msgs::MoveBaseActionGoal global_goal;
 geometry_msgs::Pose initial_pose, goal_pose, mid_pose;
 ros::Publisher goal_publisher;
@@ -103,23 +101,6 @@ void initializeGoal()
         goal_pose.orientation.z = -1;
         goal_pose.orientation.w = 0.03;
     }
-    else if (test_world == "pomdp_test")
-    {
-        mid_pose.position.x = 13.74;
-        mid_pose.position.y = 4.07;
-        mid_pose.position.z = 0.0;
-        mid_pose.orientation.x = 0;
-        mid_pose.orientation.y = 0;
-        mid_pose.orientation.z = -0.69;
-        mid_pose.orientation.w = 0.724;
-        goal_pose.position.x = 4.885;
-        goal_pose.position.y = -17.00;
-        goal_pose.position.z = 0;
-        goal_pose.orientation.x = 0;
-        goal_pose.orientation.y = 0;
-        goal_pose.orientation.z = 0;
-        goal_pose.orientation.w = 1;
-    }
 }
 
 bool readParameters(ros::NodeHandle node_handle_)
@@ -131,7 +112,7 @@ bool readParameters(ros::NodeHandle node_handle_)
         ROS_WARN_STREAM("Parameter publish_interval not set. Using default setting: " << publish_interval);
     if (!node_handle_.getParam("/destination_generator/end_point", end_point))
         ROS_WARN_STREAM("Parameter end_point not set. Using default setting: " << end_point);
-    if (!(test_world == "test" || test_world == "diamond" || test_world == "museum" || test_world == "hospital" || test_world == "pomdp_test"))
+    if (!(test_world == "test" || test_world == "diamond" || test_world == "museum" || test_world == "hospital"))
     {
         ROS_ERROR_STREAM("The selected test_world is not supported, please refer to the options in config file!");
         return false;
@@ -202,20 +183,7 @@ int main(int argc, char **argv)
 
     ros::Timer pub_timer = node_handle.createTimer(ros::Duration(publish_interval), timerCallback);
 
-    std::chrono::time_point<std::chrono::system_clock> start_time = std::chrono::system_clock::now();
-
-    std::chrono::time_point<std::chrono::system_clock> current_time = std::chrono::system_clock::now();
-
-    float time_diff = (current_time - start_time).count() / 1000000000.0;
-
-    while(time_diff <= 1.0)
-    {
-        ros::spinOnce();
-        current_time = std::chrono::system_clock::now();
-        time_diff = (current_time - start_time).count() / 1000000000.0;
-    }
-    
-    ros::shutdown();
+    ros::spin();
 
     return 0;
 }

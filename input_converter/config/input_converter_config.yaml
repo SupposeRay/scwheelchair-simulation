@@ -1,5 +1,11 @@
-publish_interval: 0.1
+publish_interval: 0.05
 # the interval of publishing results    unit: s
+
+
+input_source: "Keyboard"
+# the input source
+# options: "Keyboard", "Joystick"
+
 
 filter_type: "None"
 # add filter to the published topic
@@ -13,9 +19,3 @@ linear_scale: 1.0
 
 angular_scale: 1.0
 # the angular scale used to restrict the max angular speed
-
-linear_acc: 0.7
-# the max linear acceleration
-
-angular_acc: 0.7
-# the max angular acceleration

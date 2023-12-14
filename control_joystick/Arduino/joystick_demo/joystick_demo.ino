@@ -30,13 +30,13 @@ void loop() {
 
   //joy_msg.angle_Start = xValue;
   //joy_msg.angle_End = yValue;
- float xMax = 676;
- float xMin = 419;
- float xZero = 545;
+ float xMax = 690;
+ float xMin = 422;
+ float xZero = 553;
 
- float yMax = 679;
- float yMin = 435;
- float yZero = 554;
+ float yMax = 690;
+ float yMin = 423;
+ float yZero = 550;
 
  if(xValue > xMax)
  {
@@ -84,14 +84,6 @@ void loop() {
   }
  }
 
-if (fabs(joy_msg.x) < 0.3)
-{
-  joy_msg.x = 0;
-}
-if (joy_msg.x < 0)
-{
-  joy_msg.y = - joy_msg.y;
-}
 
   //if (yValue > 355)
   //{
